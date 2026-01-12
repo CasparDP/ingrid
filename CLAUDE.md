@@ -32,9 +32,33 @@
 - **Tested & Working**: Successfully extracted 3343 characters from historical scans
 - **Performance**: ~60s per document (parallel Docling + TrOCR on CPU/MPS)
 
-### ⏳ Phase 3: Classification & Processing (PLANNED)
-### ⏳ Phase 4: Storage & Search (PLANNED)
-### ⏳ Phase 5: Analysis & Web GUI (PLANNED)
+### ✅ Phase 3: Classification (COMPLETED)
+- **Classification Module** (`src/ingrid/classification/`)
+  - `models.py`: Core data models (ClassificationResult, ClassificationJob, DocType, ClassifierType)
+  - `language_detector.py`: Language detection using langdetect (Dutch, English, German, French)
+  - `vision_classifier.py`: Vision LLM classifier for image-based classification
+  - `heuristic_classifier.py`: Rule-based classifier using text patterns and extraction hints
+  - `__init__.py`: ClassificationOrchestrator with fail-safe sequential execution
+- **Classification Features**
+  - Document type detection (letter, newspaper_article, other)
+  - Content type detection (handwritten, typed, mixed)
+  - Multi-language support with confidence scores
+  - Confidence threshold flagging for manual review
+  - Manual override flags (--doc-type, --content-type)
+- **Configuration Updates**
+  - Extended `ClassificationConfig`: Classifier toggles, parallel execution, review thresholds
+  - Added `langdetect` dependency
+- **CLI Integration**
+  - Classification runs after extraction in both single and batch modes
+  - Detailed classification output with confidence scores and reasoning
+  - Manual override support for correcting auto-classification
+  - Batch processing summary includes classification stats
+- **Tested & Working**: Successfully classified documents with fall-back to heuristic classifier
+- **Performance**: ~0.3s heuristic, ~10-25s vision LLM per document
+
+### ⏳ Phase 4: Text Processing & Metadata (PLANNED)
+### ⏳ Phase 5: Storage & Search (PLANNED)
+### ⏳ Phase 6: Analysis & Web GUI (PLANNED)
 
 ---
 

@@ -77,6 +77,17 @@ classification:
   # Documents below this threshold are flagged for manual review
   confidence_threshold: 0.7
 
+  # Enable/disable classifiers
+  enable_vision_classifier: true # Accurate but slower/expensive
+  enable_heuristic_classifier: true # Fast fallback
+
+  # Execution behavior
+  run_parallel: false # Run sequentially: vision first, heuristic if fails
+
+  # Review and override settings
+  flag_for_review_below_threshold: true
+  allow_manual_override: true
+
 # =============================================================================
 # Embeddings
 # =============================================================================

@@ -122,6 +122,17 @@ class ClassificationConfig(BaseModel):
     auto_detect: bool = True
     confidence_threshold: float = Field(ge=0.0, le=1.0, default=0.7)
 
+    # Classifier toggles
+    enable_vision_classifier: bool = True  # Use LLM for classification
+    enable_heuristic_classifier: bool = True  # Fast, rule-based fallback
+
+    # Execution behavior
+    run_parallel: bool = False  # Run classifiers sequentially (LLM first, heuristic if fails)
+
+    # Review flags
+    flag_for_review_below_threshold: bool = True
+    allow_manual_override: bool = True
+
 
 class EmbeddingsConfig(BaseModel):
     """Embeddings configuration."""

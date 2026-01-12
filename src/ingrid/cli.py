@@ -16,6 +16,7 @@ from rich.panel import Panel
 from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 from rich.table import Table
 
+from .classification import ClassificationOrchestrator
 from .config import Config, load_config
 from .extraction import ExtractionOrchestrator
 from .llm import BaseLLMProvider, LLMError, get_provider
@@ -94,6 +95,12 @@ def process(
     verbose: bool = typer.Option(
         False, "--verbose", "-v", help="Show detailed extraction results"
     ),
+    doc_type: Optional[str] = typer.Option(
+        None, "--doc-type", help="Override document type (letter, newspaper_article, other)"
+    ),
+    content_type: Optional[str] = typer.Option(
+        None, "--content-type", help="Override content type (handwritten, typed, mixed)"
+    ),
 ) -> None:
     """Process document(s) through the extraction pipeline.
 
@@ -161,22 +168,29 @@ def process(
 
     # Process files
     if batch:
-        process_batch(config, llm, verbose)
+        process_batch(config, llm, verbose, doc_type, content_type)
     else:
         if file_path:
-            process_single(Path(file_path), config, llm, verbose)
+            process_single(Path(file_path), config, llm, verbose, doc_type, content_type)
 
 
 def process_single(
-    file_path: Path, config: Config, llm: BaseLLMProvider, verbose: bool
+    file_path: Path,
+    config: Config,
+    llm: BaseLLMProvider,
+    verbose: bool,
+    doc_type_override: str | None = None,
+    content_type_override: str | None = None,
 ) -> None:
-    """Process a single file through extraction pipeline.
+    """Process a single file through extraction and classification pipeline.
 
     Args:
         file_path: Path to the file to process.
         config: Configuration object.
         llm: LLM provider instance.
         verbose: Show detailed extraction results.
+        doc_type_override: Manual override for document type.
+        content_type_override: Manual override for content type.
     """
     console.print(f"\n[bold]Processing:[/bold] {file_path.name}")
 
@@ -188,7 +202,7 @@ def process_single(
         with console.status("[bold blue]Extracting text..."):
             job = orchestrator.extract(file_path)
 
-        # Display results
+        # Display extraction results
         if job.success and job.primary_result:
             result = job.primary_result
 
@@ -222,6 +236,81 @@ def process_single(
                             f"{r.processing_time:.2f}s",
                         )
                     console.print(table)
+
+            # Phase 3: Classification
+            if config.classification.auto_detect:
+                console.print("\n[bold]Classification:[/bold]")
+                classification_orch = ClassificationOrchestrator(config, llm)
+
+                with console.status("[bold blue]Classifying document..."):
+                    classification_job = classification_orch.classify(
+                        image_path=file_path,
+                        extracted_text=result.text,
+                        extraction_results=job.results,
+                    )
+
+                # Apply manual overrides if provided
+                if doc_type_override or content_type_override:
+                    classification_job.manual_override = {}
+                    if doc_type_override:
+                        classification_job.manual_override["doc_type"] = doc_type_override
+                    if content_type_override:
+                        classification_job.manual_override["content_type"] = content_type_override
+                    console.print("[yellow]![/yellow] Using manual overrides")
+
+                # Display classification results
+                if classification_job.success and classification_job.primary_result:
+                    cls = classification_job.primary_result
+
+                    console.print(f"[green]✓[/green] Classification successful")
+                    console.print(f"  Document type: {cls.doc_type.value}")
+                    console.print(f"  Content type: {cls.content_type.value}")
+                    console.print(
+                        f"  Languages: {', '.join(cls.languages) if cls.languages else 'unknown'}"
+                    )
+                    console.print(f"  Confidence: {cls.confidence:.2%}")
+                    console.print(f"  Classifier: {cls.classifier.value}")
+                    console.print(f"  Processing time: {classification_job.total_processing_time:.2f}s")
+
+                    # Flag for review
+                    if classification_job.flagged_for_review:
+                        console.print(
+                            f"[yellow]![/yellow] Low confidence ({cls.confidence:.2%} < "
+                            f"{config.classification.confidence_threshold:.2%}) - flagged for review"
+                        )
+
+                    # Show reasoning if available
+                    if verbose and cls.reasoning:
+                        console.print(f"\n[bold]Reasoning:[/bold]")
+                        console.print(Panel(cls.reasoning, border_style="blue"))
+
+                    # Show all classifier results if verbose
+                    if verbose and len(classification_job.results) > 1:
+                        console.print("\n[bold]All Classifier Results:[/bold]")
+                        table = Table()
+                        table.add_column("Classifier", style="cyan")
+                        table.add_column("Doc Type", style="green")
+                        table.add_column("Content Type", style="magenta")
+                        table.add_column("Confidence", style="yellow")
+                        table.add_column("Time", style="blue")
+
+                        for r in classification_job.results:
+                            table.add_row(
+                                r.classifier.value,
+                                r.doc_type.value if r.success else "-",
+                                r.content_type.value if r.success else "-",
+                                f"{r.confidence:.2%}" if r.success else "-",
+                                f"{r.processing_time:.2f}s",
+                            )
+                        console.print(table)
+                else:
+                    console.print("[yellow]![/yellow] Classification failed")
+                    if classification_job.errors:
+                        for error in classification_job.errors:
+                            console.print(f"  Error: {error}")
+            else:
+                console.print("\n[blue]ℹ[/blue] Auto-classification disabled")
+
         else:
             console.print(f"[red]✗[/red] Extraction failed")
             if job.errors:
@@ -233,13 +322,21 @@ def process_single(
         raise typer.Exit(1)
 
 
-def process_batch(config: Config, llm: BaseLLMProvider, verbose: bool) -> None:
+def process_batch(
+    config: Config,
+    llm: BaseLLMProvider,
+    verbose: bool,
+    doc_type_override: str | None = None,
+    content_type_override: str | None = None,
+) -> None:
     """Process all files in scans directory.
 
     Args:
         config: Configuration object.
         llm: LLM provider instance.
         verbose: Show detailed results for each file.
+        doc_type_override: Manual override for document type.
+        content_type_override: Manual override for content type.
     """
     scan_dir = Path(config.storage.input_path)
 
@@ -263,11 +360,12 @@ def process_batch(config: Config, llm: BaseLLMProvider, verbose: bool) -> None:
 
     console.print(f"\n[bold]Found {len(image_files)} files to process[/bold]\n")
 
-    # Initialize orchestrator
+    # Initialize orchestrators
     orchestrator = ExtractionOrchestrator(config, llm)
+    classification_orch = ClassificationOrchestrator(config, llm) if config.classification.auto_detect else None
 
     # Process with progress bar
-    results_summary = {"success": 0, "failed": 0}
+    results_summary = {"success": 0, "failed": 0, "classified": 0, "classification_failed": 0}
 
     with Progress(
         SpinnerColumn(),
@@ -287,7 +385,48 @@ def process_batch(config: Config, llm: BaseLLMProvider, verbose: bool) -> None:
 
                 if job.success:
                     results_summary["success"] += 1
-                    if verbose and job.primary_result:
+
+                    # Run classification if enabled
+                    if classification_orch and job.primary_result:
+                        try:
+                            classification_job = classification_orch.classify(
+                                image_path=file,
+                                extracted_text=job.primary_result.text,
+                                extraction_results=job.results,
+                            )
+
+                            # Apply manual overrides if provided
+                            if doc_type_override or content_type_override:
+                                classification_job.manual_override = {}
+                                if doc_type_override:
+                                    classification_job.manual_override["doc_type"] = doc_type_override
+                                if content_type_override:
+                                    classification_job.manual_override["content_type"] = content_type_override
+
+                            if classification_job.success:
+                                results_summary["classified"] += 1
+                                if verbose and classification_job.primary_result:
+                                    cls = classification_job.primary_result
+                                    console.print(
+                                        f"[green]✓[/green] {file.name}: "
+                                        f"{job.primary_result.character_count} chars "
+                                        f"({job.primary_result.extractor.value}, {job.primary_result.confidence:.2%}) | "
+                                        f"{cls.doc_type.value}, {cls.content_type.value} "
+                                        f"({cls.classifier.value}, {cls.confidence:.2%})"
+                                    )
+                            else:
+                                results_summary["classification_failed"] += 1
+                                if verbose:
+                                    console.print(
+                                        f"[yellow]![/yellow] {file.name}: extracted but classification failed"
+                                    )
+
+                        except Exception as e:
+                            results_summary["classification_failed"] += 1
+                            if verbose:
+                                console.print(f"[yellow]![/yellow] {file.name}: classification error: {e}")
+
+                    elif verbose and job.primary_result:
                         console.print(
                             f"[green]✓[/green] {file.name}: {job.primary_result.character_count} chars "
                             f"({job.primary_result.extractor.value}, {job.primary_result.confidence:.2%})"
@@ -306,8 +445,11 @@ def process_batch(config: Config, llm: BaseLLMProvider, verbose: bool) -> None:
 
     # Display summary
     console.print("\n[bold]Processing Complete[/bold]")
-    console.print(f"  [green]Success:[/green] {results_summary['success']}")
-    console.print(f"  [red]Failed:[/red] {results_summary['failed']}")
+    console.print(f"  [green]Extraction Success:[/green] {results_summary['success']}")
+    console.print(f"  [red]Extraction Failed:[/red] {results_summary['failed']}")
+    if classification_orch:
+        console.print(f"  [green]Classified:[/green] {results_summary['classified']}")
+        console.print(f"  [yellow]Classification Failed:[/yellow] {results_summary['classification_failed']}")
 
 
 @app.command()
