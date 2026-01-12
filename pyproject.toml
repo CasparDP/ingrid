@@ -1,0 +1,51 @@
+[tool.poetry]
+name = "ingrid"
+version = "0.1.0"
+description = "Document extraction pipeline for historical letters and newspapers"
+authors = ["Caspar Moolenaar <caspar.moolenaar@gmail.com>"]
+readme = "README.md"
+packages = [{include = "ingrid", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+# LLM clients
+ollama = "^0.3"
+# CLI
+typer = "^0.15"
+rich = "^13.0"
+# Configuration
+pyyaml = "^6.0"
+python-dotenv = "^1.0"
+pydantic = "^2.0"
+pydantic-settings = "^2.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4"
+pytest-cov = "^4.1"
+black = "^23.0"
+ruff = "^0.1"
+mypy = "^1.7"
+types-pyyaml = "^6.0"
+
+[tool.poetry.scripts]
+ingrid = "ingrid.cli:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 100
+target-version = ['py311']
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+select = ["E", "F", "I", "N", "W", "UP"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
