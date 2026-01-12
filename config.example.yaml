@@ -1,0 +1,115 @@
+# Ingrid Configuration
+# Copy this file to config.yaml and adjust settings as needed
+
+# =============================================================================
+# LLM Provider Settings
+# =============================================================================
+llm:
+  # Active provider: ollama, ollama_cloud, anthropic, google, huggingface
+  provider: ollama
+
+  # Ollama (local)
+  ollama:
+    base_url: http://localhost:11434
+    model: llama3.2-vision
+    embedding_model: nomic-embed-text
+
+  # Ollama Cloud
+  ollama_cloud:
+    api_key: ${OLLAMA_CLOUD_API_KEY}
+    model: llama3.2-vision
+
+  # Anthropic Claude
+  anthropic:
+    api_key: ${ANTHROPIC_API_KEY}
+    model: claude-sonnet-4-20250514
+
+  # Google AI (Gemini)
+  google:
+    api_key: ${GOOGLE_AI_API_KEY}
+    model: gemini-2.0-flash
+
+  # HuggingFace Inference API
+  huggingface:
+    api_key: ${HUGGINGFACE_API_KEY}
+    model: meta-llama/Llama-3.2-11B-Vision-Instruct
+
+# =============================================================================
+# OCR Settings
+# =============================================================================
+ocr:
+  # OCR engine: docling, tesseract, easyocr
+  engine: docling
+
+  # Handwritten text recognition model (HuggingFace)
+  htr_model: microsoft/trocr-large-handwritten
+
+  # Languages to detect/support (ISO 639-1 codes)
+  languages:
+    - nl  # Dutch
+    - en  # English
+
+# =============================================================================
+# Document Classification
+# =============================================================================
+classification:
+  # Automatically detect document type and content type
+  auto_detect: true
+
+  # Minimum confidence threshold for auto-classification
+  # Documents below this threshold are flagged for manual review
+  confidence_threshold: 0.7
+
+# =============================================================================
+# Embeddings
+# =============================================================================
+embeddings:
+  # Embedding provider (can differ from LLM provider)
+  provider: ollama
+  model: nomic-embed-text
+  dimensions: 768
+
+# =============================================================================
+# Storage Paths
+# =============================================================================
+storage:
+  # SQLite database for document metadata
+  database_path: data/ingrid.db
+
+  # ChromaDB vector store directory
+  chroma_path: data/chroma
+
+  # Output directory for generated markdown files
+  output_path: output
+
+  # Input directory for scans (default)
+  input_path: scans
+
+# =============================================================================
+# Processing Options
+# =============================================================================
+processing:
+  # Number of documents to process in parallel
+  batch_size: 10
+
+  # Generate LLM summaries for each document
+  generate_summaries: true
+
+  # Extract metadata (date, sender, recipient, etc.)
+  extract_metadata: true
+
+  # Generate embeddings for semantic search
+  generate_embeddings: true
+
+  # Retry failed LLM calls
+  max_retries: 3
+
+  # Cache LLM responses during development
+  cache_responses: false
+
+# =============================================================================
+# Logging
+# =============================================================================
+logging:
+  level: INFO  # DEBUG, INFO, WARNING, ERROR
+  file: logs/ingrid.log

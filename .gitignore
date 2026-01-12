@@ -1,0 +1,191 @@
+# ====================================
+# Environment & Secrets
+# ====================================
+.env
+.env.local
+.env.*.local
+*.env
+secrets.yaml
+config.yaml
+!config.example.yaml
+
+# API keys and credentials
+*.pem
+*.key
+*.crt
+*.p12
+
+# ====================================
+# Python
+# ====================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+.env/
+
+# Poetry
+poetry.lock
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+pytest_cache/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# ruff
+.ruff_cache/
+
+# ====================================
+# Project-specific: Data & Scans
+# ====================================
+# Input scans (private/local data)
+scans/
+input/
+
+# Output files (generated) - ignore contents but keep directory
+output/*
+!output/.gitkeep
+
+# Database and vector store - ignore contents but keep directory
+data/*
+!data/.gitkeep
+*.db
+*.sqlite
+*.sqlite3
+
+# ChromaDB
+chroma/
+
+# Model cache
+models/
+.cache/
+
+# ====================================
+# IDEs and Editors
+# ====================================
+# VSCode
+.vscode/
+*.code-workspace
+
+# PyCharm / JetBrains
+.idea/
+*.iml
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+
+# Spyder
+.spyderproject
+.spyproject
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+*.ipynb
+
+# ====================================
+# OS-specific
+# ====================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+.directory
+
+# ====================================
+# Logs and temporary files
+# ====================================
+logs/
+*.log
+*.tmp
+*.temp
+*.bak
+
+# ====================================
+# HuggingFace
+# ====================================
+.huggingface/
+huggingface_hub/
+
+# ====================================
+# Misc
+# ====================================
+*.pickle
+*.pkl
