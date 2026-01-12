@@ -18,6 +18,14 @@ pyyaml = "^6.0"
 python-dotenv = "^1.0"
 pydantic = "^2.0"
 pydantic-settings = "^2.0"
+# Document processing (Phase 2)
+docling = "^2.0"
+Pillow = "^10.0"
+numpy = "^1.24"
+scikit-image = "^0.22"
+# Machine learning (Phase 2)
+transformers = "^4.40"
+torch = "^2.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4"

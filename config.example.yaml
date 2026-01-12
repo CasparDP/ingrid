@@ -16,8 +16,9 @@ llm:
 
   # Ollama Cloud
   ollama_cloud:
-    api_key: ${OLLAMA_CLOUD_API_KEY}
-    model: llama3.2-vision
+    api_key: ${OLLAMA_API_KEY}
+    model: qwen3-vl:235b-cloud
+    embedding_model: nomic-embed-text
 
   # Anthropic Claude
   anthropic:
@@ -38,16 +39,32 @@ llm:
 # OCR Settings
 # =============================================================================
 ocr:
-  # OCR engine: docling, tesseract, easyocr
+  # OCR engine: docling, tesseract, easyocr (legacy setting)
   engine: docling
+
+  # Enable/disable specific extractors
+  enable_docling: true      # Fast, good for typed documents
+  enable_trocr: true        # Good for handwritten documents
+  enable_vision_llm: false  # Expensive, use as fallback (requires LLM provider)
 
   # Handwritten text recognition model (HuggingFace)
   htr_model: microsoft/trocr-large-handwritten
 
   # Languages to detect/support (ISO 639-1 codes)
   languages:
-    - nl  # Dutch
-    - en  # English
+    - nl # Dutch
+    - en # English
+
+  # Image preprocessing settings
+  preprocessing:
+    deskew: true                # Auto-rotate skewed scans
+    enhance_contrast: true      # Enhance contrast for better OCR
+    target_dpi: null           # Resample to target DPI (null = keep original)
+    max_rotation_angle: 45.0   # Maximum rotation angle to consider (degrees)
+
+  # Extraction behavior
+  run_extractors_parallel: true  # Run extractors in parallel (faster, more CPU/memory)
+  save_all_results: true         # Save alternative extractions for review
 
 # =============================================================================
 # Document Classification
@@ -111,5 +128,5 @@ processing:
 # Logging
 # =============================================================================
 logging:
-  level: INFO  # DEBUG, INFO, WARNING, ERROR
+  level: INFO # DEBUG, INFO, WARNING, ERROR
   file: logs/ingrid.log

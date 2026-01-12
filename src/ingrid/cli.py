@@ -13,10 +13,12 @@ import typer
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.panel import Panel
+from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 from rich.table import Table
 
 from .config import Config, load_config
-from .llm import LLMError, get_provider
+from .extraction import ExtractionOrchestrator
+from .llm import BaseLLMProvider, LLMError, get_provider
 
 # Initialize Typer app
 app = typer.Typer(
@@ -89,6 +91,9 @@ def process(
     config_path: str = typer.Option(
         "config.yaml", "--config", "-c", help="Path to configuration file"
     ),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Show detailed extraction results"
+    ),
 ) -> None:
     """Process document(s) through the extraction pipeline.
 
@@ -156,36 +161,85 @@ def process(
 
     # Process files
     if batch:
-        process_batch(config, llm)
+        process_batch(config, llm, verbose)
     else:
         if file_path:
-            process_single(Path(file_path), config, llm)
+            process_single(Path(file_path), config, llm, verbose)
 
 
-def process_single(file_path: Path, config: Config, llm: object) -> None:
-    """Process a single file (placeholder implementation).
+def process_single(
+    file_path: Path, config: Config, llm: BaseLLMProvider, verbose: bool
+) -> None:
+    """Process a single file through extraction pipeline.
 
     Args:
         file_path: Path to the file to process.
         config: Configuration object.
         llm: LLM provider instance.
+        verbose: Show detailed extraction results.
     """
-    console.print(f"\n[bold]Processing file:[/bold] {file_path}")
+    console.print(f"\n[bold]Processing:[/bold] {file_path.name}")
 
-    # Placeholder: This will be implemented in Phase 1, Step 2 (extraction)
-    console.print("[yellow]![/yellow] OCR/extraction not yet implemented")
-    console.print("[blue]ℹ[/blue] Would process:")
-    console.print(f"  - Extract text from: {file_path}")
-    console.print(f"  - Using LLM: {config.llm.provider}")
-    console.print(f"  - Output to: {config.storage.output_path}")
+    try:
+        # Initialize orchestrator
+        orchestrator = ExtractionOrchestrator(config, llm)
+
+        # Run extraction
+        with console.status("[bold blue]Extracting text..."):
+            job = orchestrator.extract(file_path)
+
+        # Display results
+        if job.success and job.primary_result:
+            result = job.primary_result
+
+            console.print(f"[green]✓[/green] Extraction successful")
+            console.print(f"  Extractor: {result.extractor.value}")
+            console.print(f"  Confidence: {result.confidence:.2%}")
+            console.print(f"  Text length: {result.character_count} chars")
+            console.print(f"  Processing time: {job.total_processing_time:.2f}s")
+
+            if verbose:
+                console.print("\n[bold]Extracted Text Preview:[/bold]")
+                preview = result.text[:500] + "..." if len(result.text) > 500 else result.text
+                console.print(Panel(preview, border_style="blue"))
+
+                # Show all extractor results
+                if len(job.results) > 1:
+                    console.print("\n[bold]All Extractor Results:[/bold]")
+                    table = Table()
+                    table.add_column("Extractor", style="cyan")
+                    table.add_column("Success", style="green")
+                    table.add_column("Confidence", style="magenta")
+                    table.add_column("Length", style="yellow")
+                    table.add_column("Time", style="blue")
+
+                    for r in job.results:
+                        table.add_row(
+                            r.extractor.value,
+                            "✓" if r.success else "✗",
+                            f"{r.confidence:.2%}" if r.success else "-",
+                            str(r.character_count) if r.success else "-",
+                            f"{r.processing_time:.2f}s",
+                        )
+                    console.print(table)
+        else:
+            console.print(f"[red]✗[/red] Extraction failed")
+            if job.errors:
+                for error in job.errors:
+                    console.print(f"  Error: {error}")
+
+    except Exception as e:
+        console.print(f"[red]✗[/red] Processing failed: {e}")
+        raise typer.Exit(1)
 
 
-def process_batch(config: Config, llm: object) -> None:
-    """Process all files in scans directory (placeholder implementation).
+def process_batch(config: Config, llm: BaseLLMProvider, verbose: bool) -> None:
+    """Process all files in scans directory.
 
     Args:
         config: Configuration object.
         llm: LLM provider instance.
+        verbose: Show detailed results for each file.
     """
     scan_dir = Path(config.storage.input_path)
 
@@ -193,32 +247,67 @@ def process_batch(config: Config, llm: object) -> None:
         console.print(f"[red]✗[/red] Scan directory not found: {scan_dir}")
         raise typer.Exit(1)
 
-    # Find all JPG files
-    image_files = list(scan_dir.glob("*.jpg")) + list(scan_dir.glob("*.JPG"))
+    # Find all image files
+    image_files = (
+        list(scan_dir.glob("*.jpg"))
+        + list(scan_dir.glob("*.JPG"))
+        + list(scan_dir.glob("*.jpeg"))
+        + list(scan_dir.glob("*.JPEG"))
+        + list(scan_dir.glob("*.png"))
+        + list(scan_dir.glob("*.PNG"))
+    )
 
     if not image_files:
-        console.print(f"[yellow]![/yellow] No JPG files found in {scan_dir}")
+        console.print(f"[yellow]![/yellow] No image files found in {scan_dir}")
         return
 
-    console.print(f"\n[bold]Found {len(image_files)} files to process[/bold]")
+    console.print(f"\n[bold]Found {len(image_files)} files to process[/bold]\n")
 
-    # Placeholder: This will be implemented in Phase 1, Step 2 (extraction)
-    console.print("[yellow]![/yellow] OCR/extraction not yet implemented")
-    console.print(f"[blue]ℹ[/blue] Would process {len(image_files)} files from: {scan_dir}")
+    # Initialize orchestrator
+    orchestrator = ExtractionOrchestrator(config, llm)
 
-    # Show first few files as example
-    table = Table(title="Files to Process")
-    table.add_column("Filename", style="cyan")
-    table.add_column("Size", style="magenta")
+    # Process with progress bar
+    results_summary = {"success": 0, "failed": 0}
 
-    for file in image_files[:5]:
-        size_kb = file.stat().st_size / 1024
-        table.add_row(file.name, f"{size_kb:.2f} KB")
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+        TimeElapsedColumn(),
+        console=console,
+    ) as progress:
+        task = progress.add_task("[cyan]Processing files...", total=len(image_files))
 
-    if len(image_files) > 5:
-        table.add_row("...", "...")
+        for file in image_files:
+            progress.update(task, description=f"[cyan]Processing {file.name}")
 
-    console.print(table)
+            try:
+                job = orchestrator.extract(file)
+
+                if job.success:
+                    results_summary["success"] += 1
+                    if verbose and job.primary_result:
+                        console.print(
+                            f"[green]✓[/green] {file.name}: {job.primary_result.character_count} chars "
+                            f"({job.primary_result.extractor.value}, {job.primary_result.confidence:.2%})"
+                        )
+                else:
+                    results_summary["failed"] += 1
+                    if verbose:
+                        console.print(f"[red]✗[/red] {file.name}: {job.errors}")
+
+            except Exception as e:
+                results_summary["failed"] += 1
+                if verbose:
+                    console.print(f"[red]✗[/red] {file.name}: {e}")
+
+            progress.advance(task)
+
+    # Display summary
+    console.print("\n[bold]Processing Complete[/bold]")
+    console.print(f"  [green]Success:[/green] {results_summary['success']}")
+    console.print(f"  [red]Failed:[/red] {results_summary['failed']}")
 
 
 @app.command()

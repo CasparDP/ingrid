@@ -82,12 +82,38 @@ class LLMConfig(BaseModel):
         return v
 
 
+class PreprocessingConfig(BaseModel):
+    """Image preprocessing configuration."""
+
+    deskew: bool = True
+    enhance_contrast: bool = True
+    target_dpi: int | None = None
+    max_rotation_angle: float = Field(ge=0.0, le=180.0, default=45.0)
+
+
 class OCRConfig(BaseModel):
     """OCR engine configuration."""
 
-    engine: Literal["docling", "tesseract", "easyocr"]
-    htr_model: str
-    languages: list[str]
+    # Legacy engine setting (kept for backwards compatibility)
+    engine: Literal["docling", "tesseract", "easyocr"] = "docling"
+
+    # Extractor toggles
+    enable_docling: bool = True
+    enable_trocr: bool = True
+    enable_vision_llm: bool = False  # Expensive, disabled by default
+
+    # HTR model
+    htr_model: str = "microsoft/trocr-large-handwritten"
+
+    # Languages
+    languages: list[str] = Field(default_factory=lambda: ["nl", "en"])
+
+    # Preprocessing
+    preprocessing: PreprocessingConfig = Field(default_factory=PreprocessingConfig)
+
+    # Execution
+    run_extractors_parallel: bool = True
+    save_all_results: bool = True
 
 
 class ClassificationConfig(BaseModel):

@@ -1,5 +1,43 @@
 # CLAUDE.md - Ingrid Letter Extraction Pipeline
 
+## Current Status
+
+### ✅ Phase 1: Project Foundation (COMPLETED)
+- Poetry project initialized with `pyproject.toml`
+- Package structure created under `src/ingrid/`
+- Configuration system implemented (`config.py`) loading `config.yaml` and `.env`
+- Abstract LLM interface created (`src/ingrid/llm/base.py`)
+- Ollama provider implemented (`src/ingrid/llm/ollama.py`)
+- Ollama Cloud provider implemented (`src/ingrid/llm/ollama_cloud.py`)
+  - Supports cloud-hosted models like `qwen3-vl:235b-cloud`
+  - Uses `OLLAMA_API_KEY` environment variable
+- CLI skeleton with Typer (`src/ingrid/cli.py`)
+- `process` command with `--batch` flag
+
+### ✅ Phase 2: OCR/Extraction (COMPLETED)
+- **Extraction Module** (`src/ingrid/extraction/`)
+  - `models.py`: Core data models (ExtractionResult, PreprocessedImage, ExtractionJob)
+  - `preprocessing.py`: Image enhancement (deskew with Hough transform, contrast/sharpness)
+  - `ocr.py`: Docling OCR integration for typed documents
+  - `htr.py`: TrOCR (microsoft/trocr-large-handwritten) for handwritten text
+  - `vision_extract.py`: Vision LLM extraction using existing LLM providers
+  - `__init__.py`: ExtractionOrchestrator with parallel execution
+- **Configuration Updates**
+  - `PreprocessingConfig`: Deskew, contrast, DPI settings
+  - Updated `OCRConfig`: Extractor toggles, parallel execution, preprocessing settings
+- **CLI Integration**
+  - `--verbose` flag for detailed extraction results
+  - `process_single()`: Extract text from single file with Rich output
+  - `process_batch()`: Process all scans with progress bar
+- **Tested & Working**: Successfully extracted 3343 characters from historical scans
+- **Performance**: ~60s per document (parallel Docling + TrOCR on CPU/MPS)
+
+### ⏳ Phase 3: Classification & Processing (PLANNED)
+### ⏳ Phase 4: Storage & Search (PLANNED)
+### ⏳ Phase 5: Analysis & Web GUI (PLANNED)
+
+---
+
 ## Project Overview
 
 **Ingrid** is a document processing pipeline that extracts content from scanned letters (handwritten and typed) and newspaper articles, storing the results in a searchable database with embeddings for semantic search and network analysis.
