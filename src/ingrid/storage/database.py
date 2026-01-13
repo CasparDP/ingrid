@@ -5,8 +5,9 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-from sqlalchemy import create_engine, func, or_
+from sqlalchemy import create_engine, func, or_, text
 from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm.attributes import flag_modified
 
 from ingrid.storage.models import Base, Document
 
@@ -42,7 +43,7 @@ class DatabaseManager:
         # Set WAL mode if specified
         if journal_mode == "WAL":
             with self.engine.connect() as conn:
-                conn.execute("PRAGMA journal_mode=WAL")
+                conn.execute(text("PRAGMA journal_mode=WAL"))
                 conn.commit()
 
         # Create all tables
@@ -205,6 +206,8 @@ class DatabaseManager:
             # Add tag if not already present
             if tag not in document.manual_tags:
                 document.manual_tags.append(tag)
+                # Mark the JSON field as modified so SQLAlchemy knows to update it
+                flag_modified(document, "manual_tags")
                 session.commit()
                 logger.info(f"Added tag '{tag}' to document {doc_id}")
 
@@ -227,6 +230,8 @@ class DatabaseManager:
 
             if tag in document.manual_tags:
                 document.manual_tags.remove(tag)
+                # Mark the JSON field as modified so SQLAlchemy knows to update it
+                flag_modified(document, "manual_tags")
                 session.commit()
                 logger.info(f"Removed tag '{tag}' from document {doc_id}")
                 return True
@@ -350,6 +355,48 @@ class DatabaseManager:
                 session.expunge(doc)
 
             return documents
+
+    def verify_database(self) -> tuple[bool, list[str]]:
+        """Verify database health and schema.
+
+        Returns:
+            Tuple of (success, errors_list)
+        """
+        errors = []
+
+        try:
+            # Check database file exists
+            if not self.database_path.exists():
+                errors.append(f"Database file does not exist: {self.database_path}")
+                return False, errors
+
+            # Try to connect and query
+            with self._get_session() as session:
+                try:
+                    # Check if documents table exists and is queryable
+                    count = session.query(func.count(Document.id)).scalar()
+                    logger.debug(f"Database verified: {count} documents")
+                except Exception as e:
+                    errors.append(f"Database query failed: {e}")
+                    return False, errors
+
+            # Check table schema
+            from sqlalchemy import inspect
+            inspector = inspect(self.engine)
+            tables = inspector.get_table_names()
+
+            if "documents" not in tables:
+                errors.append("Documents table does not exist")
+
+            if errors:
+                return False, errors
+
+            logger.info("Database verification passed")
+            return True, []
+
+        except Exception as e:
+            errors.append(f"Verification failed: {e}")
+            return False, errors
 
     def close(self) -> None:
         """Close database connection."""

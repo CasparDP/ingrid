@@ -103,7 +103,7 @@ class OllamaCloudProvider(BaseLLMProvider):
         self,
         prompt: str,
         system_prompt: str | None = None,
-        temperature: float = 0.7,
+        temperature: float = 0.1,
         max_tokens: int | None = None,
     ) -> LLMResponse:
         """Generate text completion using Ollama Cloud.
@@ -153,7 +153,7 @@ class OllamaCloudProvider(BaseLLMProvider):
         self,
         prompt: str,
         system_prompt: str | None = None,
-        temperature: float = 0.7,
+        temperature: float = 0.1,
         max_tokens: int | None = None,
     ):
         """Generate streaming text completion using Ollama Cloud.

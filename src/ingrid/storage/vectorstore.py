@@ -5,9 +5,9 @@ from pathlib import Path
 from typing import Any
 
 import chromadb
+import torch
 from chromadb.config import Settings
 from PIL import Image
-import torch
 from transformers import CLIPModel, CLIPProcessor
 
 from ingrid.llm.base import BaseLLMProvider, LLMError
@@ -40,12 +40,21 @@ class VectorStoreManager:
 
         # Ensure storage directory exists
         chroma_path.mkdir(parents=True, exist_ok=True)
+        logger.info(f"ChromaDB storage directory: {chroma_path}")
+
+        # Verify directory is writable
+        if not chroma_path.exists():
+            raise RuntimeError(f"Failed to create ChromaDB directory: {chroma_path}")
+        if not chroma_path.is_dir():
+            raise RuntimeError(f"ChromaDB path exists but is not a directory: {chroma_path}")
 
         # Initialize ChromaDB client
+        logger.info("Initializing ChromaDB PersistentClient...")
         self.client = chromadb.PersistentClient(
             path=str(chroma_path),
             settings=Settings(anonymized_telemetry=False),
         )
+        logger.info("ChromaDB client initialized successfully")
 
         # Initialize CLIP model for image embeddings
         logger.info(f"Loading CLIP model: {clip_model_name}")
@@ -84,14 +93,21 @@ class VectorStoreManager:
             metadata={"description": "CLIP image embeddings"},
         )
 
+        # Log collection counts for verification
+        collection_stats = self.get_collection_stats()
         logger.info(
             f"VectorStoreManager initialized: {chroma_path}, "
             f"similarity={similarity_metric}, device={self.device}"
         )
+        logger.info(
+            f"Collection counts: "
+            f"text={collection_stats['ingrid_cleaned_text']}, "
+            f"summaries={collection_stats['ingrid_summaries']}, "
+            f"summaries_en={collection_stats['ingrid_summaries_english']}, "
+            f"images={collection_stats['ingrid_images']}"
+        )
 
-    def _get_or_create_collection(
-        self, name: str, metadata: dict[str, Any]
-    ) -> chromadb.Collection:
+    def _get_or_create_collection(self, name: str, metadata: dict[str, Any]) -> chromadb.Collection:
         """Get existing collection or create new one.
 
         Args:
@@ -193,9 +209,7 @@ class VectorStoreManager:
             logger.error(f"Unexpected error adding text embeddings: {e}", exc_info=True)
             raise
 
-    def add_image_embedding(
-        self, doc_id: str, image_path: Path, metadata: dict[str, Any]
-    ) -> str:
+    def add_image_embedding(self, doc_id: str, image_path: Path, metadata: dict[str, Any]) -> str:
         """Generate CLIP embedding for image and store.
 
         Args:
@@ -222,9 +236,7 @@ class VectorStoreManager:
             with torch.no_grad():
                 image_features = self.clip_model.get_image_features(**inputs)
                 # Normalize embedding
-                image_embedding = (
-                    image_features / image_features.norm(dim=-1, keepdim=True)
-                )
+                image_embedding = image_features / image_features.norm(dim=-1, keepdim=True)
                 embedding_list = image_embedding.cpu().numpy().flatten().tolist()
 
             # Store in ChromaDB
@@ -292,7 +304,9 @@ class VectorStoreManager:
 
             # Search
             results = collection.query(
-                query_embeddings=[query_embedding], n_results=top_k, include=["documents", "metadatas", "distances"]
+                query_embeddings=[query_embedding],
+                n_results=top_k,
+                include=["documents", "metadatas", "distances"],
             )
 
             # Format results
@@ -320,9 +334,7 @@ class VectorStoreManager:
             logger.error(f"Search failed: {e}", exc_info=True)
             raise
 
-    def search_by_image(
-        self, image_path: Path, top_k: int = 10
-    ) -> list[dict[str, Any]]:
+    def search_by_image(self, image_path: Path, top_k: int = 10) -> list[dict[str, Any]]:
         """Visual similarity search using CLIP.
 
         Args:
@@ -347,9 +359,7 @@ class VectorStoreManager:
 
             with torch.no_grad():
                 image_features = self.clip_model.get_image_features(**inputs)
-                image_embedding = (
-                    image_features / image_features.norm(dim=-1, keepdim=True)
-                )
+                image_embedding = image_features / image_features.norm(dim=-1, keepdim=True)
                 query_embedding = image_embedding.cpu().numpy().flatten().tolist()
 
             # Search in image collection
@@ -395,11 +405,57 @@ class VectorStoreManager:
         logger.debug(f"Collection stats: {stats}")
         return stats
 
-    def _generate_text_embedding(self, text: str) -> list[float]:
+    def verify_storage(self) -> tuple[bool, list[str]]:
+        """Verify vector store health and persistence.
+
+        Returns:
+            Tuple of (success, errors_list)
+        """
+        errors = []
+
+        try:
+            # Check storage directory exists
+            if not self.chroma_path.exists():
+                errors.append(f"ChromaDB directory does not exist: {self.chroma_path}")
+                return False, errors
+
+            # Check collections are accessible
+            collections_to_check = [
+                ("ingrid_cleaned_text", self.text_collection),
+                ("ingrid_summaries", self.summary_collection),
+                ("ingrid_summaries_english", self.summary_en_collection),
+                ("ingrid_images", self.image_collection),
+            ]
+
+            for name, collection in collections_to_check:
+                try:
+                    count = collection.count()
+                    logger.debug(f"Collection {name} verified: {count} documents")
+                except Exception as e:
+                    errors.append(f"Collection {name} not accessible: {e}")
+
+            # Check CLIP model is loaded
+            if self.clip_model is None:
+                errors.append("CLIP model not loaded")
+
+            if errors:
+                return False, errors
+
+            logger.info("Vector store verification passed")
+            return True, []
+
+        except Exception as e:
+            errors.append(f"Verification failed: {e}")
+            return False, errors
+
+    def _generate_text_embedding(self, text: str, max_chars: int = 28000) -> list[float]:
         """Generate embedding for text using embedding provider.
 
         Args:
             text: Text to embed
+            max_chars: Maximum characters to embed (default 28000, safe for 8192 tokens)
+                      nomic-embed-text supports 8192 tokens (~4 chars/token = ~32k chars)
+                      We use 28000 to leave margin for safety.
 
         Returns:
             Embedding vector as list of floats
@@ -407,6 +463,13 @@ class VectorStoreManager:
         Raises:
             LLMError: If embedding generation fails
         """
+        # Truncate long text to avoid context length errors
+        if len(text) > max_chars:
+            logger.warning(
+                f"Text too long for embedding ({len(text)} chars), truncating to {max_chars} chars"
+            )
+            text = text[:max_chars]
+
         try:
             response = self.embedding_provider.embed(text)
             if isinstance(response, list):

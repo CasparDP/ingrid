@@ -18,7 +18,7 @@ from pathlib import Path
 
 from ..config import Config
 from ..extraction.models import ExtractionResult
-from ..llm import BaseLLMProvider
+from ..llm import BaseLLMProvider, get_provider_for_task
 from .heuristic_classifier import HeuristicClassifier
 from .models import ClassificationJob, ClassificationResult, ClassifierType
 from .vision_classifier import VisionLLMClassifier
@@ -61,17 +61,24 @@ class ClassificationOrchestrator:
 
         Args:
             config: Configuration object with classification settings.
-            llm: LLM provider instance for vision classification.
+            llm: LLM provider instance (default provider) for vision classification.
         """
         self.config = config
         self.llm = llm
+
+        # Get task-specific LLM provider for classification if configured
+        classification_llm = get_provider_for_task("classification", config.llm, llm)
+
+        # Log if task-specific model is being used
+        if classification_llm is not llm:
+            logger.info("Using task-specific model for classification")
 
         # Initialize classifiers based on config
         self.vision_classifier = None
         self.heuristic_classifier = None
 
         if config.classification.enable_vision_classifier:
-            self.vision_classifier = VisionLLMClassifier(llm)
+            self.vision_classifier = VisionLLMClassifier(classification_llm)
             logger.info("Vision LLM classifier enabled")
 
         if config.classification.enable_heuristic_classifier:

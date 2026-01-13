@@ -70,6 +70,10 @@ class LLMConfig(BaseModel):
     google: GoogleConfig | None = None
     huggingface: HuggingFaceConfig | None = None
 
+    # Optional: Override model for specific tasks
+    # Useful for using better models for structured output (e.g., metadata extraction)
+    task_models: dict[str, str] = Field(default_factory=dict)
+
     @field_validator("provider")
     @classmethod
     def validate_provider(cls, v: str) -> str:
@@ -80,6 +84,24 @@ class LLMConfig(BaseModel):
                 f"Invalid provider '{v}'. Must be one of: {', '.join(valid_providers)}"
             )
         return v
+
+    def get_model_for_task(self, task: str) -> str | None:
+        """Get model override for a specific task.
+
+        Args:
+            task: Task name (e.g., "metadata_extraction", "classification", "summarization")
+
+        Returns:
+            Model name if override exists, None otherwise
+
+        Example task names:
+            - "metadata_extraction": Metadata extraction (benefits from good JSON output)
+            - "classification": Document classification (benefits from good JSON output)
+            - "summarization": Text summarization
+            - "cleanup": Text cleanup/OCR correction
+            - "translation": Summary translation
+        """
+        return self.task_models.get(task)
 
 
 class PreprocessingConfig(BaseModel):

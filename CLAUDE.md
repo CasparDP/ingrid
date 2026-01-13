@@ -101,8 +101,11 @@
   - Comprehensive statistics (by type, language, processing times)
 - **Vector Store Features** (ChromaDB + embeddings)
   - **4 Collections**: cleaned_text, summaries, summaries_english, images
-  - Text embeddings via configured embedding provider (Ollama/nomic-embed-text)
+  - Text embeddings via configured embedding provider
+    - **Recommended**: `nomic-embed-text` (8192 token context, ~28k chars)
+    - Run `ollama pull nomic-embed-text` to install
   - Image embeddings via CLIP (openai/clip-vit-base-patch32)
+  - Text truncation safety: Long texts truncated to 28,000 chars before embedding
   - MPS/CUDA/CPU device support for CLIP
   - Semantic search across all collections
   - Visual similarity search using CLIP
@@ -127,7 +130,125 @@
 - **Tested & Working**: Full pipeline from extraction → storage → search
 - **Performance**: ~10-15s per document for storage (2s CLIP + 3s text embeddings + 1s database)
 
-### ⏳ Phase 6: Analysis & Web GUI (PLANNED)
+### ✅ Phase 5 REVISION: Storage Fixes & CLI Commands (COMPLETED)
+- **Critical Bug Fixes**
+  - Fixed SQLite PRAGMA execution error by adding `text()` wrapper in `database.py`
+  - Added `flag_modified()` for JSON field updates (manual tags) in SQLAlchemy
+  - Enhanced storage verification logging in `vectorstore.py` and `database.py`
+  - Added `verify_storage()` and `verify_database()` methods for health checks
+- **Structured LLM Response Parsing** (`src/ingrid/llm/structured.py`) - NEW MODULE
+  - Pydantic models: `MetadataResponse`, `ClassificationResponse`, `SummaryResponse`
+  - Multi-tier parsing strategy: direct JSON → regex cleaning → manual extraction
+  - `extract_with_retry()` function with feedback loop for parse failures
+  - Robust handling of malformed JSON from smaller local models
+  - Field validators for pronoun filtering and normalization
+  - Integrated into `metadata.py` for more reliable extraction
+- **Per-Task Model Configuration**
+  - Added `task_models` field to `LLMConfig` in `config.py`
+  - New `get_provider_for_task()` helper in `llm/__init__.py`
+  - Orchestrators updated to use task-specific models:
+    - `ProcessingOrchestrator`: Separate models for cleanup, metadata, summarization, translation
+    - `ClassificationOrchestrator`: Task-specific model for classification
+  - Allows using better models (e.g., qwen3-vl:235b-cloud) for structured JSON tasks
+  - Config example in `config.yaml` with commented task_models section
+- **New CLI Commands**
+  - `ingrid verify-storage`: Health check for database and vector store
+  - `ingrid list`: List processed documents with filters (--doc-type, --content-type, --flagged)
+  - `ingrid show <id>`: Display detailed document information (supports partial ID match)
+  - `ingrid tag <id>`: Manage document tags (--add, --remove, --list)
+  - `ingrid search-image <path>`: Visual similarity search using CLIP embeddings
+- **Files Changed**
+  - Modified: `database.py`, `vectorstore.py`, `metadata.py`, `config.py`, `cli.py`, `processing/__init__.py`, `classification/__init__.py`, `llm/__init__.py`
+  - Created: `llm/structured.py` (481 lines)
+  - Total: ~1,150 lines of new code
+- **Tested & Working**: All storage operations, CLI commands, and per-task model configuration verified
+
+### ⏳ Phase 6: Web GUI & Analysis (PLANNED)
+
+**Architecture:**
+- Static site hosted on GitHub Pages (no backend needed)
+- Vue 3 + Vite + TypeScript + Tailwind CSS
+- D3.js for network visualizations
+- Data exported as JSON from pipeline (`ingrid export-web`)
+- GitHub Actions deploys `web/dist/` to `gh-pages` branch
+
+**Sub-phases:**
+
+#### Phase 6a: Foundation
+- Vue + Vite + Tailwind project setup in `ingrid/web/`
+- GitHub Actions workflow for deployment to `gh-pages`
+- `ingrid export-web` CLI command to generate JSON files:
+  - `stats.json`: Dashboard statistics (counts, top topics/people/locations)
+  - `documents.json`: All documents metadata for lookup
+  - `network.json`: Nodes and edges for D3 network graph
+- Basic layout shell with navigation (Dashboard, Documents, Network views)
+- TypeScript interfaces for data types
+
+#### Phase 6b: Dashboard
+- Stats cards (document count, by type, by language)
+- Top topics/people/locations bar charts using D3
+- Simple Tailwind styling
+
+#### Phase 6c: Document Lookup
+- Document list with search/filter functionality
+- Document detail view (summary, metadata, image preview)
+- Both original and English summaries displayed
+
+#### Phase 6d: Network Graph
+- D3 network visualization
+- Nodes = documents, edges = shared topics (2+ topics = connection)
+- Node color = document type (letter vs newspaper)
+- Node size = number of connections
+- Click interactions (click node → show document details)
+
+#### Phase 6e: Polish
+- Improved styling and responsive design
+- Dark mode (optional)
+- Performance optimizations
+
+**Data Export Format:**
+```json
+// stats.json
+{
+  "total_documents": 18,
+  "by_doc_type": {"letter": 12, "newspaper_article": 5, "other": 1},
+  "by_content_type": {"handwritten": 8, "typed": 10},
+  "by_language": {"de": 10, "nl": 6, "en": 2},
+  "top_topics": [{"name": "Buddhism", "count": 5}, ...],
+  "top_people": [{"name": "Chris", "count": 3}, ...],
+  "top_locations": [{"name": "Boston", "count": 2}, ...]
+}
+
+// network.json
+{
+  "nodes": [{"id": "abc123", "label": "PHOTO-2025...", "doc_type": "letter", "topics": [...]}],
+  "edges": [{"source": "abc123", "target": "def456", "weight": 2, "shared_topics": [...]}]
+}
+```
+
+**Site URL:** `https://<username>.github.io/ingrid/`
+
+### 🔧 Known Issues & Fixes Applied
+- **Embedding Model Context Length**: Changed from `tazarov/all-minilm-l6-v2-f32` (256 tokens) to `nomic-embed-text` (8192 tokens) to handle longer documents
+- **Text Truncation Safety**: Added truncation at 28,000 characters in `vectorstore.py` to prevent context overflow (chunking planned for future if needed)
+- **SQLite PRAGMA Error**: Fixed by wrapping raw SQL with `sqlalchemy.text()` in `database.py`
+- **Anti-Hallucination Controls**: Enhanced metadata extraction prompts with strict grounding rules:
+  - LLM instructed to extract ONLY explicitly written information
+  - Null values required for uncertain/missing fields (not "Unknown" or guesses)
+  - Low confidence scores (0.1-0.3) for ambiguous information
+  - High confidence (0.7-1.0) only for clearly stated facts
+- **Pydantic Validation for Metadata** (`llm/structured.py`):
+  - `MetadataResponse` model with field descriptions enforcing extraction rules
+  - `field_validator` to filter pronouns (ich, du, I, you, hij, zij, etc.) from `people_mentioned`
+  - Automatic normalization of "unknown", "n/a", "null" → `None` for sender/recipient
+  - Pronoun filter includes German, Dutch, and English pronouns plus common non-name words
+
+### 📋 Planned Improvements (Future)
+- Text chunking for very long documents (currently truncated at 28k chars)
+- Person-based network connections (documents mentioning same person)
+- Temporal connections (documents close in time)
+- Timeline view for documents
+- Multi-page document support (letters spanning multiple scans)
 
 ---
 
@@ -188,6 +309,7 @@ ingrid/
 │       ├── llm/              # LLM integration layer
 │       │   ├── __init__.py
 │       │   ├── base.py       # Abstract LLM interface
+│       │   ├── structured.py # Pydantic models & JSON parsing
 │       │   ├── ollama.py     # Ollama local + cloud
 │       │   ├── anthropic.py  # Claude API
 │       │   ├── google.py     # Google AI (Gemini)
@@ -214,8 +336,37 @@ ingrid/
 ├── tests/
 │   └── ...
 │
-└── web/                      # Future: Web GUI for contributors
-    └── ...
+├── web/                      # Vue 3 web application (Phase 6)
+│   ├── src/
+│   │   ├── main.ts
+│   │   ├── App.vue
+│   │   ├── router/
+│   │   │   └── index.ts
+│   │   ├── views/
+│   │   │   ├── DashboardView.vue   # Stats and charts
+│   │   │   ├── DocumentsView.vue   # Document list/lookup
+│   │   │   └── NetworkView.vue     # D3 network graph
+│   │   ├── components/
+│   │   │   └── NavBar.vue
+│   │   ├── types/
+│   │   │   └── index.ts            # TypeScript interfaces
+│   │   └── assets/
+│   │       └── main.css            # Tailwind imports
+│   ├── public/
+│   │   └── data/                   # JSON data (generated by `ingrid export-web`)
+│   │       ├── stats.json
+│   │       ├── documents.json
+│   │       └── network.json
+│   ├── index.html
+│   ├── package.json
+│   ├── vite.config.ts
+│   ├── tailwind.config.js
+│   ├── postcss.config.js
+│   └── tsconfig.json
+│
+└── .github/
+    └── workflows/
+        └── deploy-web.yml          # GitHub Actions: build & deploy to gh-pages
 ```
 
 ---
@@ -229,13 +380,22 @@ ingrid/
 llm:
   # Active provider: ollama, ollama_cloud, anthropic, google, huggingface
   provider: ollama
-  
+
+  # Optional: Override model for specific tasks (NEW in Phase 5)
+  # Useful for using better models for structured JSON output
+  task_models:
+    metadata_extraction: qwen3-vl:235b-cloud  # Better at structured JSON
+    classification: qwen3-vl:235b-cloud       # Better at structured JSON
+    summarization: gemma3:4b                  # Good for text generation
+    cleanup: gemma3:4b                        # Good for text correction
+    translation: gemma3:4b                    # Good for translation
+
   # Provider-specific settings
   ollama:
     base_url: http://localhost:11434
     model: llama3.2-vision
     embedding_model: nomic-embed-text
-  
+
   ollama_cloud:
     api_key: ${OLLAMA_CLOUD_API_KEY}  # Reference to .env
     model: llama3.2-vision
@@ -386,6 +546,7 @@ confidence:
 ## CLI Interface
 
 ```bash
+# ============= Processing =============
 # Process a single file
 ingrid process scans/PHOTO-2025-12-28-10-15-43.jpg
 
@@ -395,29 +556,50 @@ ingrid process --batch
 # Process with manual classification override
 ingrid process scans/photo.jpg --doc-type letter --content-type handwritten
 
-# Re-process with different LLM provider
-ingrid process --batch --provider anthropic
+# Skip specific processing steps
+ingrid process --skip-cleanup --skip-metadata --skip-storage
 
-# Search the database
-ingrid search "food shortages during war"
+# ============= Storage & Database =============
+# Verify database and vector store health (NEW in Phase 5)
+ingrid verify-storage
 
-# Export network analysis
-ingrid analyze --network --output analysis/network.json
+# Database statistics
+ingrid stats
 
-# List all processed documents
+# ============= Document Management =============
+# List all processed documents (NEW in Phase 5)
 ingrid list
 
-# Show document details
+# List with filters
+ingrid list --doc-type letter --limit 20
+ingrid list --flagged --content-type handwritten
+
+# Show detailed document info (NEW in Phase 5)
 ingrid show abc123
+ingrid show PHOTO-2025-12-28-10-15-43.jpg
+ingrid show abc123 --json
 
-# Add manual tags
+# ============= Tagging =============
+# Manage document tags (NEW in Phase 5)
 ingrid tag abc123 --add "verified" --add "important"
+ingrid tag abc123 --remove "needs-review"
+ingrid tag abc123 --list
 
-# Re-run summarization with different model
-ingrid summarize abc123 --provider google
+# ============= Search =============
+# Semantic text search
+ingrid search "food shortages during war"
+ingrid search "meditation" --collection summaries --top-k 5
 
-# Database stats
-ingrid stats
+# Visual similarity search (NEW in Phase 5)
+ingrid search-image scans/letter.jpg
+ingrid search-image scans/letter.jpg --top-k 5
+
+# ============= Future Commands (Phase 6) =============
+# Export network analysis
+# ingrid analyze --network --output analysis/network.json
+
+# Re-run processing steps
+# ingrid summarize abc123 --provider google
 ```
 
 ---

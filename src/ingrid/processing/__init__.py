@@ -11,6 +11,7 @@ from ..config import Config
 from ..extraction.models import ExtractionJob
 from ..classification.models import ClassificationJob
 from ..llm.base import BaseLLMProvider
+from ..llm import get_provider_for_task
 
 from .cleanup import TextCleanupProcessor
 from .markdown import MarkdownGenerator
@@ -58,19 +59,36 @@ class ProcessingOrchestrator:
 
         Args:
             config: Configuration object with processing settings.
-            llm: LLM provider instance.
+            llm: LLM provider instance (default provider).
         """
         self.config = config
         self.llm = llm
 
-        # Initialize processors
+        # Get task-specific LLM providers if configured
+        # If no task-specific model is configured, uses the default llm provider
+        cleanup_llm = get_provider_for_task("cleanup", config.llm, llm)
+        metadata_llm = get_provider_for_task("metadata_extraction", config.llm, llm)
+        summarization_llm = get_provider_for_task("summarization", config.llm, llm)
+        translation_llm = get_provider_for_task("translation", config.llm, llm)
+
+        # Log if task-specific models are being used
+        if cleanup_llm is not llm:
+            logger.info("Using task-specific model for text cleanup")
+        if metadata_llm is not llm:
+            logger.info("Using task-specific model for metadata extraction")
+        if summarization_llm is not llm:
+            logger.info("Using task-specific model for summarization")
+        if translation_llm is not llm:
+            logger.info("Using task-specific model for translation")
+
+        # Initialize processors with task-specific models
         self.text_cleanup = TextCleanupProcessor(
-            llm=llm, temperature=0.3, max_retries=config.processing.max_retries
+            llm=cleanup_llm, temperature=0.3, max_retries=config.processing.max_retries
         )
 
         self.metadata_extractor = (
             MetadataExtractor(
-                llm=llm, temperature=0.2, max_retries=config.processing.max_retries
+                llm=metadata_llm, temperature=0.2, max_retries=config.processing.max_retries
             )
             if config.processing.extract_metadata
             else None
@@ -78,13 +96,13 @@ class ProcessingOrchestrator:
 
         self.summarizer = (
             DocumentSummarizer(
-                llm=llm, temperature=0.5, max_retries=config.processing.max_retries
+                llm=summarization_llm, temperature=0.5, max_retries=config.processing.max_retries
             )
             if config.processing.generate_summaries
             else None
         )
 
-        self.translator = SummaryTranslator(llm=llm)
+        self.translator = SummaryTranslator(llm=translation_llm)
 
         self.markdown_generator = MarkdownGenerator(output_path=config.storage.output_path)
 

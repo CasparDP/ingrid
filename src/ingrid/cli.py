@@ -987,6 +987,513 @@ def search(
         raise typer.Exit(1)
 
 
+@app.command()
+def verify_storage(
+    config_path: str = typer.Option("config.yaml", "--config", "-c", help="Path to configuration file"),
+) -> None:
+    """Verify database and vector store health.
+
+    Checks:
+    - SQLite database exists and is readable
+    - All tables are created
+    - ChromaDB directory exists
+    - All collections are initialized
+    - Collection counts match database document count
+
+    Examples:
+        ingrid verify-storage
+    """
+    config = load_and_validate_config(Path(config_path))
+    setup_logging(config.logging.level)
+
+    console.print("\n[bold]Storage Verification[/bold]\n")
+
+    all_passed = True
+
+    # Check database
+    console.print("[cyan]Database:[/cyan]")
+    if config.storage.database_path.exists():
+        console.print(f"  [green]✓[/green] Database file exists: {config.storage.database_path}")
+
+        try:
+            db = DatabaseManager(config.storage.database_path)
+            success, errors = db.verify_database()
+
+            if success:
+                stats = db.get_statistics()
+                console.print(f"  [green]✓[/green] Database schema verified")
+                console.print(f"  [green]✓[/green] Documents: {stats['total']}")
+                console.print(f"  [green]✓[/green] By type: {stats['by_type']}")
+            else:
+                console.print(f"  [red]✗[/red] Database verification failed:")
+                for error in errors:
+                    console.print(f"    - {error}")
+                all_passed = False
+
+            db.close()
+        except Exception as e:
+            console.print(f"  [red]✗[/red] Database error: {e}")
+            all_passed = False
+    else:
+        console.print(f"  [red]✗[/red] Database not found: {config.storage.database_path}")
+        console.print(f"  [yellow]ℹ[/yellow] Run 'ingrid process --batch' to create database")
+        all_passed = False
+
+    # Check ChromaDB
+    console.print("\n[cyan]Vector Store:[/cyan]")
+    if config.storage.chroma_path.exists():
+        console.print(f"  [green]✓[/green] ChromaDB directory exists: {config.storage.chroma_path}")
+
+        try:
+            # Initialize vector store
+            embedding_config = config.get_embedding_config()
+            embedding_provider = get_provider(config.embeddings.provider, embedding_config)
+
+            from .storage import VectorStoreManager
+            vectorstore = VectorStoreManager(
+                config.storage.chroma_path,
+                embedding_provider,
+            )
+
+            # Verify storage
+            success, errors = vectorstore.verify_storage()
+
+            if success:
+                console.print(f"  [green]✓[/green] Vector store verified")
+                stats = vectorstore.get_collection_stats()
+                console.print(f"  [green]✓[/green] Collections:")
+                for coll_name, count in stats.items():
+                    console.print(f"    - {coll_name}: {count} embeddings")
+            else:
+                console.print(f"  [red]✗[/red] Vector store verification failed:")
+                for error in errors:
+                    console.print(f"    - {error}")
+                all_passed = False
+
+        except Exception as e:
+            console.print(f"  [red]✗[/red] Vector store error: {e}")
+            all_passed = False
+    else:
+        console.print(f"  [red]✗[/red] ChromaDB directory not found: {config.storage.chroma_path}")
+        console.print(f"  [yellow]ℹ[/yellow] Run 'ingrid process --batch' to create vector store")
+        all_passed = False
+
+    # Summary
+    console.print("\n" + "="*50)
+    if all_passed:
+        console.print("[bold green]✓ All storage checks passed[/bold green]")
+    else:
+        console.print("[bold red]✗ Some storage checks failed[/bold red]")
+        raise typer.Exit(1)
+
+
+@app.command(name="list")
+def list_docs(
+    doc_type: Optional[str] = typer.Option(None, "--doc-type", "-t",
+                                           help="Filter by document type (letter, newspaper_article, other)"),
+    content_type: Optional[str] = typer.Option(None, "--content-type", "-c",
+                                               help="Filter by content type (handwritten, typed, mixed)"),
+    flagged: bool = typer.Option(False, "--flagged", "-f",
+                                  help="Show only flagged documents"),
+    limit: int = typer.Option(100, "--limit", "-l", help="Maximum results"),
+    offset: int = typer.Option(0, "--offset", "-o", help="Skip N results"),
+    config_path: str = typer.Option("config.yaml", "--config", help="Path to configuration file"),
+) -> None:
+    """List processed documents from database.
+
+    Examples:
+        ingrid list
+        ingrid list --doc-type letter --limit 20
+        ingrid list --flagged
+        ingrid list --content-type handwritten
+    """
+    config = load_and_validate_config(Path(config_path))
+    setup_logging(config.logging.level)
+
+    try:
+        db = DatabaseManager(config.storage.database_path)
+        documents = db.list_documents(doc_type, content_type, flagged, limit, offset)
+
+        if not documents:
+            console.print("[yellow]No documents found[/yellow]")
+            if doc_type or content_type or flagged:
+                console.print("[blue]ℹ[/blue] Try removing filters to see all documents")
+            return
+
+        # Display as table
+        title = f"Documents (showing {len(documents)}"
+        if doc_type or content_type or flagged:
+            filters = []
+            if doc_type:
+                filters.append(f"type={doc_type}")
+            if content_type:
+                filters.append(f"content={content_type}")
+            if flagged:
+                filters.append("flagged")
+            title += f" | filters: {', '.join(filters)}"
+        title += ")"
+
+        table = Table(title=title, show_header=True, header_style="bold cyan")
+        table.add_column("ID", style="cyan", width=10, no_wrap=True)
+        table.add_column("Filename", style="yellow", width=30)
+        table.add_column("Type", style="green", width=15)
+        table.add_column("Content", style="magenta", width=12)
+        table.add_column("Date", style="blue", width=12)
+        table.add_column("Flags", style="red", width=5, justify="center")
+
+        for doc in documents:
+            filename_display = doc.filename[:27] + "..." if len(doc.filename) > 30 else doc.filename
+            table.add_row(
+                doc.id[:8] + "...",
+                filename_display,
+                doc.doc_type or "N/A",
+                doc.content_type or "N/A",
+                doc.date or "N/A",
+                "⚠" if doc.flagged_for_review else ""
+            )
+
+        console.print("\n")
+        console.print(table)
+        console.print(f"\n[blue]ℹ[/blue] Use 'ingrid show <id>' for details")
+
+        db.close()
+
+    except FileNotFoundError:
+        console.print(f"[red]✗[/red] Database not found: {config.storage.database_path}")
+        console.print("[yellow]![/yellow] Run 'ingrid process --batch' to create database")
+        raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"[red]✗[/red] Error: {e}")
+        raise typer.Exit(1)
+
+
+@app.command()
+def show(
+    doc_id: str = typer.Argument(..., help="Document ID (first 8 chars) or filename"),
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+    config_path: str = typer.Option("config.yaml", "--config", help="Path to configuration file"),
+) -> None:
+    """Show detailed information for a document.
+
+    Examples:
+        ingrid show abc12345
+        ingrid show PHOTO-2025-12-28-10-15-43.jpg
+        ingrid show abc12345 --json
+    """
+    config = load_and_validate_config(Path(config_path))
+    setup_logging(config.logging.level)
+
+    try:
+        db = DatabaseManager(config.storage.database_path)
+
+        # Try as ID first, then as filename
+        document = db.get_document(doc_id)
+        if not document:
+            # Try with partial ID match
+            all_docs = db.list_documents(limit=1000)
+            for doc in all_docs:
+                if doc.id.startswith(doc_id):
+                    document = doc
+                    break
+
+        if not document:
+            # Try as filename
+            document = db.get_document_by_filename(doc_id)
+
+        if not document:
+            console.print(f"[red]✗[/red] Document not found: {doc_id}")
+            console.print("[blue]ℹ[/blue] Use 'ingrid list' to see all documents")
+            raise typer.Exit(1)
+
+        if json_output:
+            import json
+            console.print(json.dumps(document.to_dict(), indent=2, default=str))
+            db.close()
+            return
+
+        # Rich formatted output
+        console.print(f"\n[bold]Document Details[/bold]\n")
+
+        # Basic info panel
+        info_table = Table(show_header=False, box=None, padding=(0, 2))
+        info_table.add_column("Field", style="cyan", width=20)
+        info_table.add_column("Value", style="yellow")
+
+        info_table.add_row("ID", document.id)
+        info_table.add_row("Filename", document.filename)
+        info_table.add_row("Document Type", document.doc_type or "N/A")
+        info_table.add_row("Content Type", document.content_type or "N/A")
+        info_table.add_row("Languages", ", ".join(document.languages or []) if document.languages else "N/A")
+
+        if document.date:
+            info_table.add_row("Date", document.date)
+        if document.sender:
+            info_table.add_row("Sender", document.sender)
+        if document.recipient:
+            info_table.add_row("Recipient", document.recipient)
+        if document.location:
+            info_table.add_row("Location", document.location)
+
+        console.print(info_table)
+
+        # Topics and people
+        if document.topics:
+            console.print(f"\n[bold]Topics:[/bold] {', '.join(document.topics)}")
+        if document.people_mentioned:
+            console.print(f"[bold]People:[/bold] {', '.join(document.people_mentioned)}")
+        if document.organizations_mentioned:
+            console.print(f"[bold]Organizations:[/bold] {', '.join(document.organizations_mentioned)}")
+
+        # Summary
+        if document.summary:
+            lang_label = f" ({document.summary_language or 'original'})" if document.summary_language else ""
+            console.print(f"\n[bold]Summary{lang_label}:[/bold]")
+            console.print(Panel(document.summary, border_style="blue"))
+
+        if document.summary_english and document.summary_language and document.summary_language != "en":
+            console.print(f"\n[bold]Summary (English):[/bold]")
+            console.print(Panel(document.summary_english, border_style="blue"))
+
+        # Confidence scores
+        if document.confidence_scores:
+            console.print(f"\n[bold]Confidence Scores:[/bold]")
+            conf_table = Table(show_header=False, box=None, padding=(0, 2))
+            conf_table.add_column("Field", style="cyan", width=20)
+            conf_table.add_column("Score", style="green", width=10)
+
+            for field, score in document.confidence_scores.items():
+                if isinstance(score, (int, float)):
+                    conf_table.add_row(field.replace("_", " ").title(), f"{score:.1%}")
+
+            console.print(conf_table)
+
+        # Processing info
+        console.print(f"\n[bold]Processing Times:[/bold]")
+        times_table = Table(show_header=False, box=None, padding=(0, 2))
+        times_table.add_column("Phase", style="cyan", width=20)
+        times_table.add_column("Time", style="yellow", width=10)
+
+        if document.extraction_time:
+            times_table.add_row("Extraction", f"{document.extraction_time:.1f}s")
+        if document.classification_time:
+            times_table.add_row("Classification", f"{document.classification_time:.1f}s")
+        if document.processing_time:
+            times_table.add_row("Processing", f"{document.processing_time:.1f}s")
+        if document.storage_time:
+            times_table.add_row("Storage", f"{document.storage_time:.1f}s")
+
+        if document.extraction_time or document.classification_time or document.processing_time or document.storage_time:
+            total_time = (document.extraction_time or 0) + (document.classification_time or 0) + (document.processing_time or 0) + (document.storage_time or 0)
+            times_table.add_row("", "")
+            times_table.add_row("[bold]Total[/bold]", f"[bold]{total_time:.1f}s[/bold]")
+
+        console.print(times_table)
+
+        # Status flags
+        if document.flagged_for_review:
+            console.print(f"\n[yellow]⚠ Flagged for manual review[/yellow]")
+
+        # Tags
+        if document.manual_tags:
+            console.print(f"\n[bold]Tags:[/bold] {', '.join(document.manual_tags)}")
+
+        # Notes
+        if document.manual_notes:
+            console.print(f"\n[bold]Notes:[/bold]")
+            console.print(Panel(document.manual_notes, border_style="yellow"))
+
+        # File paths
+        console.print(f"\n[bold]Files:[/bold]")
+        console.print(f"  Source: {document.filepath}")
+        if document.markdown_path:
+            console.print(f"  Markdown: {document.markdown_path}")
+
+        console.print()  # Empty line at end
+
+        db.close()
+
+    except FileNotFoundError:
+        console.print(f"[red]✗[/red] Database not found: {config.storage.database_path}")
+        raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"[red]✗[/red] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        raise typer.Exit(1)
+
+
+@app.command()
+def tag(
+    doc_id: str = typer.Argument(..., help="Document ID (first 8 chars)"),
+    add: Optional[list[str]] = typer.Option(None, "--add", "-a", help="Add tag(s)"),
+    remove: Optional[list[str]] = typer.Option(None, "--remove", "-r", help="Remove tag(s)"),
+    list_tags: bool = typer.Option(False, "--list", "-l", help="List current tags"),
+    config_path: str = typer.Option("config.yaml", "--config", help="Path to configuration file"),
+) -> None:
+    """Manage tags for a document.
+
+    Examples:
+        ingrid tag abc12345 --add verified --add important
+        ingrid tag abc12345 --remove needs-review
+        ingrid tag abc12345 --list
+    """
+    config = load_and_validate_config(Path(config_path))
+    setup_logging(config.logging.level)
+
+    try:
+        db = DatabaseManager(config.storage.database_path)
+
+        # Try to find document
+        document = db.get_document(doc_id)
+        if not document:
+            # Try with partial ID match
+            all_docs = db.list_documents(limit=1000)
+            for doc in all_docs:
+                if doc.id.startswith(doc_id):
+                    document = doc
+                    doc_id = doc.id  # Use full ID
+                    break
+
+        if not document:
+            console.print(f"[red]✗[/red] Document not found: {doc_id}")
+            raise typer.Exit(1)
+
+        # List tags
+        if list_tags:
+            console.print(f"\n[bold]Tags for {doc_id[:8]}... ({document.filename}):[/bold]")
+            if document.manual_tags:
+                for tag in document.manual_tags:
+                    console.print(f"  • {tag}")
+            else:
+                console.print("  [yellow](no tags)[/yellow]")
+            console.print()
+            db.close()
+            return
+
+        # Check if any operation requested
+        if not add and not remove:
+            console.print("[yellow]![/yellow] No operation specified. Use --add, --remove, or --list")
+            db.close()
+            raise typer.Exit(1)
+
+        # Add tags
+        if add:
+            for tag in add:
+                success = db.add_tag(doc_id, tag)
+                if success:
+                    console.print(f"[green]✓[/green] Added tag: {tag}")
+                else:
+                    console.print(f"[yellow]![/yellow] Failed to add tag: {tag}")
+
+        # Remove tags
+        if remove:
+            for tag in remove:
+                success = db.remove_tag(doc_id, tag)
+                if success:
+                    console.print(f"[green]✓[/green] Removed tag: {tag}")
+                else:
+                    console.print(f"[red]✗[/red] Tag not found: {tag}")
+
+        # Show current tags
+        document = db.get_document(doc_id)
+        if document and document.manual_tags:
+            console.print(f"\n[bold]Current tags:[/bold] {', '.join(document.manual_tags)}")
+        else:
+            console.print(f"\n[bold]Current tags:[/bold] [yellow](none)[/yellow]")
+
+        console.print()
+        db.close()
+
+    except FileNotFoundError:
+        console.print(f"[red]✗[/red] Database not found: {config.storage.database_path}")
+        raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"[red]✗[/red] Error: {e}")
+        raise typer.Exit(1)
+
+
+@app.command()
+def search_image(
+    image_path: str = typer.Argument(..., help="Path to query image"),
+    top_k: int = typer.Option(10, "--top-k", "-k", help="Number of results"),
+    config_path: str = typer.Option("config.yaml", "--config", help="Path to configuration file"),
+) -> None:
+    """Find visually similar documents using CLIP embeddings.
+
+    Examples:
+        ingrid search-image scans/letter.jpg
+        ingrid search-image scans/letter.jpg --top-k 5
+    """
+    config = load_and_validate_config(Path(config_path))
+    setup_logging(config.logging.level)
+
+    query_path = Path(image_path)
+    if not query_path.exists():
+        console.print(f"[red]✗[/red] Image not found: {image_path}")
+        raise typer.Exit(1)
+
+    try:
+        # Initialize vector store
+        embedding_config = config.get_embedding_config()
+        embedding_provider = get_provider(config.embeddings.provider, embedding_config)
+
+        from .storage import VectorStoreManager
+        vectorstore = VectorStoreManager(
+            config.storage.chroma_path,
+            embedding_provider,
+        )
+
+        # Perform search
+        console.print(f"\n[bold]Visual Similarity Search[/bold]")
+        console.print(f"Query image: {query_path.name}\n")
+
+        with console.status("[cyan]Computing CLIP embedding and searching..."):
+            results = vectorstore.search_by_image(query_path, top_k)
+
+        if not results:
+            console.print("[yellow]No results found[/yellow]")
+            console.print("[blue]ℹ[/blue] Make sure documents have been processed with image embeddings")
+            return
+
+        # Display results
+        console.print(f"[bold]Found {len(results)} similar documents:[/bold]\n")
+
+        table = Table(show_header=True, header_style="bold cyan")
+        table.add_column("#", style="cyan", width=3, justify="right")
+        table.add_column("Similarity", style="green", width=10, justify="right")
+        table.add_column("Filename", style="yellow", width=35)
+        table.add_column("Type", style="magenta", width=15)
+        table.add_column("Date", style="blue", width=12)
+
+        for i, result in enumerate(results, 1):
+            metadata = result["metadata"]
+            filename = metadata.get("filename", "Unknown")
+            filename_display = filename[:32] + "..." if len(filename) > 35 else filename
+
+            table.add_row(
+                str(i),
+                f"{result['score']:.3f}",
+                filename_display,
+                metadata.get("doc_type", "unknown"),
+                metadata.get("date", "N/A")
+            )
+
+        console.print(table)
+
+        # Extract doc IDs from result metadata
+        console.print(f"\n[blue]ℹ[/blue] Use 'ingrid show <id>' to view document details")
+
+    except FileNotFoundError:
+        console.print(f"[red]✗[/red] Vector store not found at {config.storage.chroma_path}")
+        console.print("[yellow]![/yellow] Run 'ingrid process --batch' to create vector store")
+        raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"[red]✗[/red] Search error: {e}")
+        import traceback
+        traceback.print_exc()
+        raise typer.Exit(1)
+
+
 def main() -> None:
     """Entry point for the CLI."""
     try:
