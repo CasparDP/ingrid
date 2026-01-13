@@ -162,6 +162,20 @@ class ProcessingConfig(BaseModel):
     cache_responses: bool = False
 
 
+class DatabaseConfig(BaseModel):
+    """SQLite database configuration."""
+
+    journal_mode: Literal["WAL", "DELETE"] = "WAL"
+    cache_size: int = Field(gt=0, default=2000)
+    timeout: int = Field(gt=0, default=30)  # seconds
+
+
+class ChromaDBConfig(BaseModel):
+    """ChromaDB vector store configuration."""
+
+    similarity_metric: Literal["cosine", "l2", "ip"] = "cosine"
+
+
 class LoggingConfig(BaseModel):
     """Logging configuration."""
 
@@ -183,6 +197,8 @@ class Config(BaseModel):
     embeddings: EmbeddingsConfig
     storage: StorageConfig
     processing: ProcessingConfig
+    database: DatabaseConfig = Field(default_factory=DatabaseConfig)
+    chromadb: ChromaDBConfig = Field(default_factory=ChromaDBConfig)
     logging: LoggingConfig
 
     def get_active_llm_config(self) -> dict[str, str | int]:
@@ -201,6 +217,25 @@ class Config(BaseModel):
 
         if config is None:
             raise ValueError(f"No configuration found for provider: {provider}")
+
+        return config.model_dump()
+
+    def get_embedding_config(self) -> dict[str, str | int]:
+        """Get configuration dictionary for the active embedding provider.
+
+        Returns:
+            Configuration dictionary for the embedding provider.
+
+        Raises:
+            ValueError: If no configuration exists for the embedding provider.
+        """
+        provider = self.embeddings.provider
+        # Replace hyphens with underscores for attribute access
+        provider_attr = provider.replace("-", "_")
+        config = getattr(self.llm, provider_attr, None)
+
+        if config is None:
+            raise ValueError(f"No configuration found for embedding provider: {provider}")
 
         return config.model_dump()
 

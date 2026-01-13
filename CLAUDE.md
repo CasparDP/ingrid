@@ -56,8 +56,77 @@
 - **Tested & Working**: Successfully classified documents with fall-back to heuristic classifier
 - **Performance**: ~0.3s heuristic, ~10-25s vision LLM per document
 
-### ⏳ Phase 4: Text Processing & Metadata (PLANNED)
-### ⏳ Phase 5: Storage & Search (PLANNED)
+### ✅ Phase 4: Text Processing & Metadata (COMPLETED)
+- **Processing Module** (`src/ingrid/processing/`)
+  - `models.py`: Core data models (ProcessingResult, DocumentMetadata, ProcessorType)
+  - `cleanup.py`: LLM-based OCR error correction with temperature=0.3
+  - `metadata.py`: JSON-based metadata extraction (date, sender, recipient, location, topics, people)
+  - `summarizer.py`: 2-3 sentence summaries in original language with temperature=0.5
+  - `markdown.py`: Markdown generator with YAML frontmatter following CLAUDE.md specification
+  - `__init__.py`: ProcessingOrchestrator with sequential execution (cleanup → metadata → summary → markdown)
+- **Processing Features**
+  - Text cleanup: Fix OCR errors while preserving structure, meaning, and original language
+  - Metadata extraction: Structured data with confidence scores per field
+  - Summarization: Language-aware summaries (Dutch, English, German, French)
+  - Markdown output: YAML frontmatter + summary + transcription + collapsible raw OCR
+  - Fail-safe design: Partial failures logged, processing continues
+- **Configuration Updates**
+  - Uses existing `ProcessingConfig`: max_retries, generate_summaries, extract_metadata flags
+  - Temperature settings: cleanup=0.3, metadata=0.2, summary=0.5
+- **CLI Integration**
+  - New flags: `--skip-cleanup`, `--skip-metadata`, `--skip-summary`, `--write-markdown/--no-markdown`
+  - Processing runs after classification in both single and batch modes
+  - Detailed processing output with Rich formatting
+  - Batch processing summary includes processing stats
+  - Verbose mode shows full summary in Panel
+- **Tested & Working**: Successfully processed documents with text cleanup, summarization, and markdown generation
+- **Performance**: ~55s per document (32s cleanup + 16s metadata + 7s summary on Ollama local)
+- **Bug Fixes**: Fixed vision_classifier.py AttributeError (total_tokens → tokens_used)
+
+### ✅ Phase 5: Storage & Search (COMPLETED)
+- **Storage Module** (`src/ingrid/storage/`)
+  - `models.py`: SQLAlchemy Document model with comprehensive metadata tracking
+  - `database.py`: DatabaseManager with CRUD operations, tag management, and statistics
+  - `vectorstore.py`: VectorStoreManager with ChromaDB + CLIP embeddings
+  - `__init__.py`: StorageOrchestrator coordinating database + vector store operations
+- **Translation Module** (`src/ingrid/processing/translator.py`)
+  - `SummaryTranslator`: Automatic English translation of summaries (temperature=0.3)
+  - Integrated into ProcessingOrchestrator as optional 4th step
+  - Stores both original and English summaries
+- **Database Features** (SQLite + SQLAlchemy)
+  - WAL mode for better concurrency
+  - Complete document metadata with confidence scores
+  - Processing status tracking for all pipeline phases
+  - Manual tagging and notes support
+  - Comprehensive statistics (by type, language, processing times)
+- **Vector Store Features** (ChromaDB + embeddings)
+  - **4 Collections**: cleaned_text, summaries, summaries_english, images
+  - Text embeddings via configured embedding provider (Ollama/nomic-embed-text)
+  - Image embeddings via CLIP (openai/clip-vit-base-patch32)
+  - MPS/CUDA/CPU device support for CLIP
+  - Semantic search across all collections
+  - Visual similarity search using CLIP
+- **Configuration Updates**
+  - `DatabaseConfig`: journal_mode, cache_size, timeout settings
+  - `ChromaDBConfig`: similarity_metric configuration
+  - `get_embedding_config()` method added to Config class
+  - Extended `config.yaml` with database and chromadb sections
+- **CLI Integration**
+  - `--skip-storage` flag added to `process` command
+  - Storage runs after processing in both single and batch modes
+  - Batch summary includes storage statistics (stored/failed counts)
+  - New `ingrid stats` command: Database and vector collection statistics
+  - New `ingrid search <query>` command: Semantic text search with --collection and --top-k flags
+- **Markdown Output Updates**
+  - YAML frontmatter includes both summaries (original + English)
+  - Separate sections for original and English summaries
+  - Language code stored for summary language detection
+- **Dependencies Added**
+  - `sqlalchemy ^2.0`: ORM for database operations
+  - `chromadb ^0.5`: Vector store for embeddings
+- **Tested & Working**: Full pipeline from extraction → storage → search
+- **Performance**: ~10-15s per document for storage (2s CLIP + 3s text embeddings + 1s database)
+
 ### ⏳ Phase 6: Analysis & Web GUI (PLANNED)
 
 ---

@@ -28,6 +28,9 @@ transformers = "^4.40"
 torch = "^2.0"
 # Language detection (Phase 3)
 langdetect = "^1.0.9"
+# Storage & embeddings (Phase 5)
+sqlalchemy = "^2.0"
+chromadb = "^0.5"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4"

@@ -160,7 +160,7 @@ class VisionLLMClassifier:
                 reasoning=reasoning,
                 metadata={
                     "model": response.model,
-                    "total_tokens": response.total_tokens,
+                    "tokens_used": response.tokens_used,
                     "raw_response": result_dict,
                 },
             )
