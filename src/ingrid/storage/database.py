@@ -50,9 +50,7 @@ class DatabaseManager:
         Base.metadata.create_all(self.engine)
 
         # Create session factory
-        self.SessionLocal = sessionmaker(
-            autocommit=False, autoflush=False, bind=self.engine
-        )
+        self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
 
         logger.info(f"Database initialized at {database_path} (mode: {journal_mode})")
 
@@ -106,9 +104,7 @@ class DatabaseManager:
             Document object or None if not found
         """
         with self._get_session() as session:
-            document = (
-                session.query(Document).filter(Document.filename == filename).first()
-            )
+            document = session.query(Document).filter(Document.filename == filename).first()
             if document:
                 session.expunge(document)
             return document
@@ -183,6 +179,26 @@ class DatabaseManager:
 
             logger.info(f"Updated document: {doc_id}")
             return document
+
+    def delete_document(self, doc_id: str) -> bool:
+        """Delete a document from the database.
+
+        Args:
+            doc_id: Document UUID
+
+        Returns:
+            True if deleted, False if document not found
+        """
+        with self._get_session() as session:
+            document = session.query(Document).filter(Document.id == doc_id).first()
+            if not document:
+                return False
+
+            session.delete(document)
+            session.commit()
+
+            logger.info(f"Deleted document: {doc_id}")
+            return True
 
     def add_tag(self, doc_id: str, tag: str) -> bool:
         """Add a manual tag to document.
@@ -300,9 +316,7 @@ class DatabaseManager:
                     func.avg(Document.processing_time),
                     func.avg(Document.storage_time),
                 )
-                .filter(
-                    Document.extraction_time.isnot(None)
-                )  # Only documents with times
+                .filter(Document.extraction_time.isnot(None))  # Only documents with times
                 .first()
             )
 
@@ -313,9 +327,7 @@ class DatabaseManager:
                 "by_language": dict(by_language),
                 "flagged_count": flagged_count or 0,
                 "avg_extraction_time": round(avg_times[0], 1) if avg_times[0] else 0,
-                "avg_classification_time": (
-                    round(avg_times[1], 1) if avg_times[1] else 0
-                ),
+                "avg_classification_time": (round(avg_times[1], 1) if avg_times[1] else 0),
                 "avg_processing_time": round(avg_times[2], 1) if avg_times[2] else 0,
                 "avg_storage_time": round(avg_times[3], 1) if avg_times[3] else 0,
             }
@@ -382,6 +394,7 @@ class DatabaseManager:
 
             # Check table schema
             from sqlalchemy import inspect
+
             inspector = inspect(self.engine)
             tables = inspector.get_table_names()
 

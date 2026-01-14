@@ -21,7 +21,7 @@ from .config import Config, load_config
 from .extraction import ExtractionOrchestrator
 from .llm import BaseLLMProvider, LLMError, get_provider
 from .processing import ProcessingOrchestrator
-from .storage import StorageOrchestrator, DatabaseManager
+from .storage import DatabaseManager, StorageOrchestrator, VectorStoreManager
 
 # Initialize Typer app
 app = typer.Typer(
@@ -94,24 +94,16 @@ def process(
     config_path: str = typer.Option(
         "config.yaml", "--config", "-c", help="Path to configuration file"
     ),
-    verbose: bool = typer.Option(
-        False, "--verbose", "-v", help="Show detailed extraction results"
-    ),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed extraction results"),
     doc_type: Optional[str] = typer.Option(
         None, "--doc-type", help="Override document type (letter, newspaper_article, other)"
     ),
     content_type: Optional[str] = typer.Option(
         None, "--content-type", help="Override content type (handwritten, typed, mixed)"
     ),
-    skip_cleanup: bool = typer.Option(
-        False, "--skip-cleanup", help="Skip text cleanup step"
-    ),
-    skip_metadata: bool = typer.Option(
-        False, "--skip-metadata", help="Skip metadata extraction"
-    ),
-    skip_summary: bool = typer.Option(
-        False, "--skip-summary", help="Skip summarization"
-    ),
+    skip_cleanup: bool = typer.Option(False, "--skip-cleanup", help="Skip text cleanup step"),
+    skip_metadata: bool = typer.Option(False, "--skip-metadata", help="Skip metadata extraction"),
+    skip_summary: bool = typer.Option(False, "--skip-summary", help="Skip summarization"),
     write_markdown: bool = typer.Option(
         True, "--write-markdown/--no-markdown", help="Generate markdown files"
     ),
@@ -186,14 +178,31 @@ def process(
     # Process files
     if batch:
         process_batch(
-            config, llm, verbose, doc_type, content_type,
-            skip_cleanup, skip_metadata, skip_summary, write_markdown, skip_storage
+            config,
+            llm,
+            verbose,
+            doc_type,
+            content_type,
+            skip_cleanup,
+            skip_metadata,
+            skip_summary,
+            write_markdown,
+            skip_storage,
         )
     else:
         if file_path:
             process_single(
-                Path(file_path), config, llm, verbose, doc_type, content_type,
-                skip_cleanup, skip_metadata, skip_summary, write_markdown, skip_storage
+                Path(file_path),
+                config,
+                llm,
+                verbose,
+                doc_type,
+                content_type,
+                skip_cleanup,
+                skip_metadata,
+                skip_summary,
+                write_markdown,
+                skip_storage,
             )
 
 
@@ -302,7 +311,9 @@ def process_single(
                     )
                     console.print(f"  Confidence: {cls.confidence:.2%}")
                     console.print(f"  Classifier: {cls.classifier.value}")
-                    console.print(f"  Processing time: {classification_job.total_processing_time:.2f}s")
+                    console.print(
+                        f"  Processing time: {classification_job.total_processing_time:.2f}s"
+                    )
 
                     # Flag for review
                     if classification_job.flagged_for_review:
@@ -371,7 +382,9 @@ def process_single(
                     # Display processing results
                     if processing_result.success:
                         console.print(f"[green]✓[/green] Processing successful")
-                        console.print(f"  Cleaned text: {len(processing_result.cleaned_text)} chars")
+                        console.print(
+                            f"  Cleaned text: {len(processing_result.cleaned_text)} chars"
+                        )
 
                         if processing_result.summary:
                             console.print(f"  Summary: {len(processing_result.summary)} chars")
@@ -383,7 +396,9 @@ def process_single(
                             if processing_result.metadata.sender:
                                 console.print(f"    - Sender: {processing_result.metadata.sender}")
                             if processing_result.metadata.recipient:
-                                console.print(f"    - Recipient: {processing_result.metadata.recipient}")
+                                console.print(
+                                    f"    - Recipient: {processing_result.metadata.recipient}"
+                                )
                             if processing_result.metadata.topics:
                                 console.print(
                                     f"    - Topics: {', '.join(processing_result.metadata.topics)}"
@@ -421,7 +436,9 @@ def process_single(
                                     )
 
                                 if storage_success:
-                                    console.print(f"[green]✓[/green] Stored with ID: {doc_id[:8]}...")
+                                    console.print(
+                                        f"[green]✓[/green] Stored with ID: {doc_id[:8]}..."
+                                    )
                                     console.print(f"  Storage time: {storage_time:.1f}s")
                                     console.print(f"  Database: {config.storage.database_path}")
                                     console.print(f"  Vector store: {config.storage.chroma_path}")
@@ -444,7 +461,9 @@ def process_single(
                         if processing_result.summary_error:
                             console.print(f"  Summary error: {processing_result.summary_error}")
                         if processing_result.translation_error:
-                            console.print(f"  Translation error: {processing_result.translation_error}")
+                            console.print(
+                                f"  Translation error: {processing_result.translation_error}"
+                            )
             else:
                 console.print("\n[blue]ℹ[/blue] Auto-classification disabled")
 
@@ -508,7 +527,9 @@ def process_batch(
 
     # Initialize orchestrators
     orchestrator = ExtractionOrchestrator(config, llm)
-    classification_orch = ClassificationOrchestrator(config, llm) if config.classification.auto_detect else None
+    classification_orch = (
+        ClassificationOrchestrator(config, llm) if config.classification.auto_detect else None
+    )
 
     # Temporarily override config flags based on CLI options
     original_metadata_flag = config.processing.extract_metadata
@@ -580,9 +601,13 @@ def process_batch(
                             if doc_type_override or content_type_override:
                                 classification_job.manual_override = {}
                                 if doc_type_override:
-                                    classification_job.manual_override["doc_type"] = doc_type_override
+                                    classification_job.manual_override["doc_type"] = (
+                                        doc_type_override
+                                    )
                                 if content_type_override:
-                                    classification_job.manual_override["content_type"] = content_type_override
+                                    classification_job.manual_override["content_type"] = (
+                                        content_type_override
+                                    )
 
                             if classification_job.success:
                                 results_summary["classified"] += 1
@@ -605,7 +630,9 @@ def process_batch(
                         except Exception as e:
                             results_summary["classification_failed"] += 1
                             if verbose:
-                                console.print(f"[yellow]![/yellow] {file.name}: classification error: {e}")
+                                console.print(
+                                    f"[yellow]![/yellow] {file.name}: classification error: {e}"
+                                )
 
                     # Phase 4: Processing (if enabled)
                     if processing_orch and job.primary_result and classification_job.success:
@@ -643,11 +670,15 @@ def process_batch(
                                         else:
                                             results_summary["storage_failed"] += 1
                                             if verbose:
-                                                console.print(f"[red]✗[/red] {file.name}: storage failed: {storage_error}")
+                                                console.print(
+                                                    f"[red]✗[/red] {file.name}: storage failed: {storage_error}"
+                                                )
                                     except Exception as e:
                                         results_summary["storage_failed"] += 1
                                         if verbose:
-                                            console.print(f"[red]✗[/red] {file.name}: storage error: {e}")
+                                            console.print(
+                                                f"[red]✗[/red] {file.name}: storage error: {e}"
+                                            )
 
                             else:
                                 results_summary["processing_failed"] += 1
@@ -659,7 +690,9 @@ def process_batch(
                         except Exception as e:
                             results_summary["processing_failed"] += 1
                             if verbose:
-                                console.print(f"[yellow]![/yellow] {file.name}: processing error: {e}")
+                                console.print(
+                                    f"[yellow]![/yellow] {file.name}: processing error: {e}"
+                                )
 
                     elif verbose and job.primary_result:
                         console.print(
@@ -689,7 +722,9 @@ def process_batch(
         )
     if processing_orch:
         console.print(f"  [green]Processed:[/green] {results_summary['processed']}")
-        console.print(f"  [yellow]Processing Failed:[/yellow] {results_summary['processing_failed']}")
+        console.print(
+            f"  [yellow]Processing Failed:[/yellow] {results_summary['processing_failed']}"
+        )
     if storage_orch:
         console.print(f"  [green]Stored:[/green] {results_summary['stored']}")
         console.print(f"  [red]Storage Failed:[/red] {results_summary['storage_failed']}")
@@ -772,7 +807,7 @@ def test_llm(
 def config_check(
     config_path: str = typer.Option(
         "config.yaml", "--config", "-c", help="Path to configuration file"
-    )
+    ),
 ) -> None:
     """Validate configuration file without connecting to services."""
     console.print("[bold]Validating configuration...[/bold]\n")
@@ -876,9 +911,7 @@ def stats(
         try:
             embedding_config = config.get_embedding_config()
             embedding_provider = get_provider(config.embeddings.provider, embedding_config)
-            vectorstore = VectorStoreManager(
-                config.storage.chroma_path, embedding_provider
-            )
+            vectorstore = VectorStoreManager(config.storage.chroma_path, embedding_provider)
             vector_stats = vectorstore.get_collection_stats()
 
             console.print("\n[bold]Vector Collections[/bold]")
@@ -936,6 +969,7 @@ def search(
         embedding_provider = get_provider(config.embeddings.provider, embedding_config)
 
         from .storage import VectorStoreManager
+
         vectorstore = VectorStoreManager(
             config.storage.chroma_path,
             embedding_provider,
@@ -964,14 +998,13 @@ def search(
         for i, result in enumerate(results, 1):
             filename = result["metadata"].get("filename", "Unknown")
             doc_type = result["metadata"].get("doc_type", "unknown")
-            preview = result["document"][:100] + "..." if len(result["document"]) > 100 else result["document"]
-
-            table.add_row(
-                str(i),
-                f"{result['score']:.3f}",
-                f"{filename}\n({doc_type})",
-                preview
+            preview = (
+                result["document"][:100] + "..."
+                if len(result["document"]) > 100
+                else result["document"]
             )
+
+            table.add_row(str(i), f"{result['score']:.3f}", f"{filename}\n({doc_type})", preview)
 
         console.print(table)
 
@@ -989,7 +1022,9 @@ def search(
 
 @app.command()
 def verify_storage(
-    config_path: str = typer.Option("config.yaml", "--config", "-c", help="Path to configuration file"),
+    config_path: str = typer.Option(
+        "config.yaml", "--config", "-c", help="Path to configuration file"
+    ),
 ) -> None:
     """Verify database and vector store health.
 
@@ -1050,6 +1085,7 @@ def verify_storage(
             embedding_provider = get_provider(config.embeddings.provider, embedding_config)
 
             from .storage import VectorStoreManager
+
             vectorstore = VectorStoreManager(
                 config.storage.chroma_path,
                 embedding_provider,
@@ -1079,7 +1115,7 @@ def verify_storage(
         all_passed = False
 
     # Summary
-    console.print("\n" + "="*50)
+    console.print("\n" + "=" * 50)
     if all_passed:
         console.print("[bold green]✓ All storage checks passed[/bold green]")
     else:
@@ -1089,12 +1125,13 @@ def verify_storage(
 
 @app.command(name="list")
 def list_docs(
-    doc_type: Optional[str] = typer.Option(None, "--doc-type", "-t",
-                                           help="Filter by document type (letter, newspaper_article, other)"),
-    content_type: Optional[str] = typer.Option(None, "--content-type", "-c",
-                                               help="Filter by content type (handwritten, typed, mixed)"),
-    flagged: bool = typer.Option(False, "--flagged", "-f",
-                                  help="Show only flagged documents"),
+    doc_type: Optional[str] = typer.Option(
+        None, "--doc-type", "-t", help="Filter by document type (letter, newspaper_article, other)"
+    ),
+    content_type: Optional[str] = typer.Option(
+        None, "--content-type", "-c", help="Filter by content type (handwritten, typed, mixed)"
+    ),
+    flagged: bool = typer.Option(False, "--flagged", "-f", help="Show only flagged documents"),
     limit: int = typer.Option(100, "--limit", "-l", help="Maximum results"),
     offset: int = typer.Option(0, "--offset", "-o", help="Skip N results"),
     config_path: str = typer.Option("config.yaml", "--config", help="Path to configuration file"),
@@ -1149,7 +1186,7 @@ def list_docs(
                 doc.doc_type or "N/A",
                 doc.content_type or "N/A",
                 doc.date or "N/A",
-                "⚠" if doc.flagged_for_review else ""
+                "⚠" if doc.flagged_for_review else "",
             )
 
         console.print("\n")
@@ -1207,6 +1244,7 @@ def show(
 
         if json_output:
             import json
+
             console.print(json.dumps(document.to_dict(), indent=2, default=str))
             db.close()
             return
@@ -1223,7 +1261,9 @@ def show(
         info_table.add_row("Filename", document.filename)
         info_table.add_row("Document Type", document.doc_type or "N/A")
         info_table.add_row("Content Type", document.content_type or "N/A")
-        info_table.add_row("Languages", ", ".join(document.languages or []) if document.languages else "N/A")
+        info_table.add_row(
+            "Languages", ", ".join(document.languages or []) if document.languages else "N/A"
+        )
 
         if document.date:
             info_table.add_row("Date", document.date)
@@ -1242,15 +1282,23 @@ def show(
         if document.people_mentioned:
             console.print(f"[bold]People:[/bold] {', '.join(document.people_mentioned)}")
         if document.organizations_mentioned:
-            console.print(f"[bold]Organizations:[/bold] {', '.join(document.organizations_mentioned)}")
+            console.print(
+                f"[bold]Organizations:[/bold] {', '.join(document.organizations_mentioned)}"
+            )
 
         # Summary
         if document.summary:
-            lang_label = f" ({document.summary_language or 'original'})" if document.summary_language else ""
+            lang_label = (
+                f" ({document.summary_language or 'original'})" if document.summary_language else ""
+            )
             console.print(f"\n[bold]Summary{lang_label}:[/bold]")
             console.print(Panel(document.summary, border_style="blue"))
 
-        if document.summary_english and document.summary_language and document.summary_language != "en":
+        if (
+            document.summary_english
+            and document.summary_language
+            and document.summary_language != "en"
+        ):
             console.print(f"\n[bold]Summary (English):[/bold]")
             console.print(Panel(document.summary_english, border_style="blue"))
 
@@ -1282,8 +1330,18 @@ def show(
         if document.storage_time:
             times_table.add_row("Storage", f"{document.storage_time:.1f}s")
 
-        if document.extraction_time or document.classification_time or document.processing_time or document.storage_time:
-            total_time = (document.extraction_time or 0) + (document.classification_time or 0) + (document.processing_time or 0) + (document.storage_time or 0)
+        if (
+            document.extraction_time
+            or document.classification_time
+            or document.processing_time
+            or document.storage_time
+        ):
+            total_time = (
+                (document.extraction_time or 0)
+                + (document.classification_time or 0)
+                + (document.processing_time or 0)
+                + (document.storage_time or 0)
+            )
             times_table.add_row("", "")
             times_table.add_row("[bold]Total[/bold]", f"[bold]{total_time:.1f}s[/bold]")
 
@@ -1318,6 +1376,7 @@ def show(
     except Exception as e:
         console.print(f"[red]✗[/red] Error: {e}")
         import traceback
+
         traceback.print_exc()
         raise typer.Exit(1)
 
@@ -1372,7 +1431,9 @@ def tag(
 
         # Check if any operation requested
         if not add and not remove:
-            console.print("[yellow]![/yellow] No operation specified. Use --add, --remove, or --list")
+            console.print(
+                "[yellow]![/yellow] No operation specified. Use --add, --remove, or --list"
+            )
             db.close()
             raise typer.Exit(1)
 
@@ -1438,6 +1499,7 @@ def search_image(
         embedding_provider = get_provider(config.embeddings.provider, embedding_config)
 
         from .storage import VectorStoreManager
+
         vectorstore = VectorStoreManager(
             config.storage.chroma_path,
             embedding_provider,
@@ -1452,7 +1514,9 @@ def search_image(
 
         if not results:
             console.print("[yellow]No results found[/yellow]")
-            console.print("[blue]ℹ[/blue] Make sure documents have been processed with image embeddings")
+            console.print(
+                "[blue]ℹ[/blue] Make sure documents have been processed with image embeddings"
+            )
             return
 
         # Display results
@@ -1475,7 +1539,7 @@ def search_image(
                 f"{result['score']:.3f}",
                 filename_display,
                 metadata.get("doc_type", "unknown"),
-                metadata.get("date", "N/A")
+                metadata.get("date", "N/A"),
             )
 
         console.print(table)
@@ -1490,6 +1554,524 @@ def search_image(
     except Exception as e:
         console.print(f"[red]✗[/red] Search error: {e}")
         import traceback
+
+        traceback.print_exc()
+        raise typer.Exit(1)
+
+
+@app.command()
+def export_web(
+    output_dir: str = typer.Option(
+        "web/public/data",
+        "--output",
+        "-o",
+        help="Output directory for JSON files",
+    ),
+    config_path: str = typer.Option(
+        "config.yaml", "--config", "-c", help="Path to configuration file"
+    ),
+) -> None:
+    """Export data for web interface (GitHub Pages).
+
+    Generates three JSON files:
+    - stats.json: Dashboard statistics
+    - documents.json: All document metadata
+    - network.json: Network graph data (nodes and edges)
+
+    Examples:
+        ingrid export-web
+        ingrid export-web --output custom/path
+    """
+    config = load_and_validate_config(Path(config_path))
+    setup_logging(config.logging.level)
+
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    console.print(f"\n[bold]Exporting data for web interface...[/bold]")
+    console.print(f"Output directory: {output_path}\n")
+
+    try:
+        db = DatabaseManager(config.storage.database_path)
+
+        # Check if database has documents
+        stats = db.get_statistics()
+        if stats["total"] == 0:
+            console.print("[yellow]![/yellow] No documents found in database")
+            console.print("[blue]ℹ[/blue] Run 'ingrid process --batch' first")
+            db.close()
+            raise typer.Exit(1)
+
+        # Export stats.json
+        with console.status("[cyan]Generating stats.json..."):
+            stats_data = generate_stats_json(db)
+            write_json(output_path / "stats.json", stats_data)
+        console.print("[green]✓[/green] stats.json generated")
+
+        # Export documents.json
+        with console.status("[cyan]Generating documents.json..."):
+            docs_data = generate_documents_json(db)
+            write_json(output_path / "documents.json", docs_data)
+        console.print(f"[green]✓[/green] documents.json generated ({len(docs_data)} documents)")
+
+        # Export network.json
+        with console.status("[cyan]Generating network.json..."):
+            network_data = generate_network_json(db)
+            write_json(output_path / "network.json", network_data)
+        console.print(
+            f"[green]✓[/green] network.json generated "
+            f"({len(network_data['nodes'])} nodes, {len(network_data['edges'])} edges)"
+        )
+
+        console.print(f"\n[bold green]Export complete![/bold green]")
+        console.print(f"Files written to: {output_path.resolve()}")
+        console.print(f"\n[blue]ℹ[/blue] Run 'cd web && npm run build' to build the web interface")
+
+        db.close()
+
+    except FileNotFoundError:
+        console.print(f"[red]✗[/red] Database not found: {config.storage.database_path}")
+        console.print("[yellow]![/yellow] Run 'ingrid process --batch' to create database")
+        raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"[red]✗[/red] Export failed: {e}")
+        import traceback
+
+        traceback.print_exc()
+        raise typer.Exit(1)
+
+
+def generate_stats_json(db: DatabaseManager) -> dict:
+    """Generate stats.json for dashboard."""
+    from collections import Counter
+
+    stats = db.get_statistics()
+    all_docs = db.list_documents(limit=10000)
+
+    # Aggregate topics, people, locations
+    topics_counter = Counter()
+    people_counter = Counter()
+    locations_counter = Counter()
+
+    for doc in all_docs:
+        if doc.topics:
+            for topic in doc.topics:
+                topics_counter[topic] += 1
+        if doc.people_mentioned:
+            for person in doc.people_mentioned:
+                people_counter[person] += 1
+        if doc.location:
+            locations_counter[doc.location] += 1
+
+    return {
+        "total_documents": stats["total"],
+        "by_doc_type": stats["by_type"],
+        "by_content_type": stats["by_content_type"],
+        "by_language": stats["by_language"],
+        "flagged_count": stats["flagged_count"],
+        "top_topics": [
+            {"name": topic, "count": count} for topic, count in topics_counter.most_common(20)
+        ],
+        "top_people": [
+            {"name": person, "count": count} for person, count in people_counter.most_common(20)
+        ],
+        "top_locations": [
+            {"name": location, "count": count}
+            for location, count in locations_counter.most_common(20)
+        ],
+    }
+
+
+def generate_documents_json(db: DatabaseManager) -> list[dict]:
+    """Generate documents.json for document lookup."""
+    all_docs = db.list_documents(limit=10000)
+
+    documents = []
+    for doc in all_docs:
+        documents.append(
+            {
+                "id": doc.id,
+                "filename": doc.filename,
+                "doc_type": doc.doc_type,
+                "content_type": doc.content_type,
+                "languages": doc.languages or [],
+                "date": doc.date,
+                "sender": doc.sender,
+                "recipient": doc.recipient,
+                "location": doc.location,
+                "topics": doc.topics or [],
+                "people_mentioned": doc.people_mentioned or [],
+                "summary": doc.summary,
+                "summary_english": doc.summary_english,
+                "summary_language": doc.summary_language,
+                "flagged_for_review": doc.flagged_for_review,
+                "manual_tags": doc.manual_tags or [],
+                "created_at": doc.created_at.isoformat() if doc.created_at else None,
+            }
+        )
+
+    return documents
+
+
+def generate_network_json(db: DatabaseManager) -> dict:
+    """Generate network.json for D3 network visualization.
+
+    Nodes: Documents
+    Edges: Documents that share 2+ topics
+    """
+    all_docs = db.list_documents(limit=10000)
+
+    # Create nodes
+    nodes = []
+    doc_topics = {}  # Map doc_id -> set of topics
+
+    for doc in all_docs:
+        # Create node
+        label = doc.filename[:30] + "..." if len(doc.filename) > 30 else doc.filename
+        nodes.append(
+            {
+                "id": doc.id,
+                "label": label,
+                "doc_type": doc.doc_type or "other",
+                "content_type": doc.content_type or "unknown",
+                "date": doc.date,
+                "topics": doc.topics or [],
+                "people_mentioned": doc.people_mentioned or [],
+            }
+        )
+
+        # Store topics for edge calculation
+        if doc.topics:
+            doc_topics[doc.id] = set(doc.topics)
+
+    # Create edges (documents sharing 2+ topics)
+    edges = []
+    doc_ids = list(doc_topics.keys())
+
+    for i, doc_id_a in enumerate(doc_ids):
+        for doc_id_b in doc_ids[i + 1 :]:
+            topics_a = doc_topics[doc_id_a]
+            topics_b = doc_topics[doc_id_b]
+
+            shared_topics = topics_a.intersection(topics_b)
+
+            if len(shared_topics) >= 2:
+                edges.append(
+                    {
+                        "source": doc_id_a,
+                        "target": doc_id_b,
+                        "weight": len(shared_topics),
+                        "shared_topics": list(shared_topics),
+                    }
+                )
+
+    return {
+        "nodes": nodes,
+        "edges": edges,
+    }
+
+
+def write_json(filepath: Path, data: dict | list) -> None:
+    """Write data to JSON file with pretty formatting."""
+    import json
+
+    with open(filepath, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+
+# =============================================================================
+# Cleanup Command
+# =============================================================================
+
+# Patterns that indicate LLM instruction leakage (bad extraction)
+BAD_EXTRACTION_PATTERNS = [
+    "corrigeer duidelijke ocr-fouten",
+    "fix obvious ocr errors",
+    "preserve original paragraph structure",
+    "behoud de oorspronkelijke",
+    "mark unclear sections with",
+    "markeer onduidelijke passages",
+    "do not add any information",
+    "voeg geen informatie toe",
+    "respond with only",
+    "respond in json format",
+    "extract the following fields",
+    "instructions:",
+    "instructies:",
+]
+
+
+def detect_bad_extraction(doc) -> tuple[bool, str]:
+    """Check if document has bad extraction (LLM instruction leakage).
+
+    Args:
+        doc: Document object from database
+
+    Returns:
+        Tuple of (is_bad, reason)
+    """
+    # Check cleaned text and summary for instruction patterns
+    text_to_check = ""
+    if doc.cleaned_text:
+        text_to_check += doc.cleaned_text.lower()
+    if doc.summary:
+        text_to_check += doc.summary.lower()
+    if doc.topics:
+        text_to_check += " ".join(doc.topics).lower()
+
+    for pattern in BAD_EXTRACTION_PATTERNS:
+        if pattern in text_to_check:
+            return True, f"Contains instruction pattern: '{pattern}'"
+
+    # Check for very short extractions (likely failed)
+    if doc.cleaned_text and len(doc.cleaned_text.strip()) < 50:
+        return True, f"Text too short ({len(doc.cleaned_text)} chars)"
+
+    # Check for instruction-like topics
+    bad_topics = {"ocr", "correction", "formatting", "instructions", "instructies"}
+    if doc.topics:
+        topic_set = {t.lower() for t in doc.topics}
+        if bad_topics.intersection(topic_set):
+            return True, f"Contains bad topics: {bad_topics.intersection(topic_set)}"
+
+    return False, ""
+
+
+@app.command()
+def cleanup(
+    detect_bad: bool = typer.Option(
+        False,
+        "--detect-bad",
+        help="Scan for documents with bad extractions (LLM instruction leakage)",
+    ),
+    remove_duplicates: bool = typer.Option(
+        False,
+        "--remove-duplicates",
+        help="Remove duplicate documents, keeping most recent",
+    ),
+    delete_id: Optional[str] = typer.Option(
+        None,
+        "--delete",
+        help="Delete a specific document by ID (supports partial match)",
+    ),
+    delete_bad: bool = typer.Option(
+        False,
+        "--delete-bad",
+        help="Delete all documents detected as bad extractions",
+    ),
+    delete_markdown: bool = typer.Option(
+        False,
+        "--delete-markdown",
+        help="Also delete markdown files (default: keep them as archive)",
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="Show what would be deleted without actually deleting",
+    ),
+    config_path: str = typer.Option(
+        "config.yaml", "--config", "-c", help="Path to configuration file"
+    ),
+) -> None:
+    """Clean up database: detect bad extractions, remove duplicates, delete documents.
+
+    By default, markdown files are preserved as an archive. Use --delete-markdown to remove them.
+
+    Examples:
+        ingrid cleanup --detect-bad                    # Scan for problematic documents
+        ingrid cleanup --remove-duplicates --dry-run  # Preview duplicate removal
+        ingrid cleanup --delete abc123                # Delete specific document
+        ingrid cleanup --delete-bad --dry-run         # Preview bad document removal
+        ingrid cleanup --delete-bad --delete-markdown # Delete bad docs AND their markdown files
+    """
+    setup_logging()
+
+    try:
+        config = load_and_validate_config(Path(config_path))
+    except typer.Exit:
+        return
+
+    try:
+        db = DatabaseManager(config.storage.database_path)
+        all_docs = db.list_documents(limit=10000)
+
+        if not all_docs:
+            console.print("[yellow]![/yellow] No documents in database")
+            return
+
+        to_delete = []
+
+        # Detect bad extractions
+        if detect_bad or delete_bad:
+            console.print("\n[bold]Scanning for bad extractions...[/bold]")
+            bad_docs = []
+
+            for doc in all_docs:
+                is_bad, reason = detect_bad_extraction(doc)
+                if is_bad:
+                    bad_docs.append((doc, reason))
+
+            if bad_docs:
+                table = Table(title="Bad Extractions Detected")
+                table.add_column("ID", style="dim")
+                table.add_column("Filename")
+                table.add_column("Reason", style="red")
+
+                for doc, reason in bad_docs:
+                    table.add_row(doc.id[:8], doc.filename, reason)
+                    if delete_bad:
+                        to_delete.append(doc)
+
+                console.print(table)
+                console.print(f"\n[yellow]Found {len(bad_docs)} bad extractions[/yellow]")
+            else:
+                console.print("[green]✓[/green] No bad extractions found")
+
+        # Detect duplicates
+        if remove_duplicates:
+            console.print("\n[bold]Scanning for duplicates...[/bold]")
+            from collections import defaultdict
+
+            by_filename = defaultdict(list)
+            for doc in all_docs:
+                by_filename[doc.filename].append(doc)
+
+            duplicates = {f: docs for f, docs in by_filename.items() if len(docs) > 1}
+
+            if duplicates:
+                table = Table(title="Duplicates Detected")
+                table.add_column("Filename")
+                table.add_column("Count", style="yellow")
+                table.add_column("Keep (newest)", style="green")
+                table.add_column("Delete", style="red")
+
+                for filename, docs in duplicates.items():
+                    # Sort by created_at, keep newest
+                    sorted_docs = sorted(docs, key=lambda d: d.created_at or "", reverse=True)
+                    keep = sorted_docs[0]
+                    delete_these = sorted_docs[1:]
+
+                    table.add_row(
+                        filename,
+                        str(len(docs)),
+                        keep.id[:8],
+                        ", ".join(d.id[:8] for d in delete_these),
+                    )
+
+                    to_delete.extend(delete_these)
+
+                console.print(table)
+                console.print(f"\n[yellow]Found {len(duplicates)} files with duplicates[/yellow]")
+            else:
+                console.print("[green]✓[/green] No duplicates found")
+
+        # Delete specific document
+        if delete_id:
+            # Find document by partial ID match
+            matches = [d for d in all_docs if d.id.startswith(delete_id)]
+
+            if not matches:
+                console.print(f"[red]✗[/red] No document found matching ID: {delete_id}")
+                return
+            elif len(matches) > 1:
+                console.print(f"[red]✗[/red] Multiple documents match ID: {delete_id}")
+                for m in matches:
+                    console.print(f"  - {m.id[:12]}... ({m.filename})")
+                return
+            else:
+                to_delete.append(matches[0])
+                console.print(
+                    f"[yellow]Will delete:[/yellow] {matches[0].filename} ({matches[0].id[:8]})"
+                )
+
+        # Perform deletions
+        if to_delete:
+            # Deduplicate
+            to_delete = list({d.id: d for d in to_delete}.values())
+
+            console.print(
+                f"\n[bold]{'Would delete' if dry_run else 'Deleting'} {len(to_delete)} documents:[/bold]"
+            )
+
+            for doc in to_delete:
+                console.print(f"  - {doc.filename} ({doc.id[:8]}...)")
+
+            if dry_run:
+                console.print("\n[yellow]Dry run - no changes made[/yellow]")
+            else:
+                confirm = typer.confirm(f"\nDelete {len(to_delete)} documents?")
+                if confirm:
+                    # Initialize vector store for embedding cleanup
+                    vectorstore = None
+                    try:
+                        embedding_provider = get_provider(config)
+                        vectorstore = VectorStoreManager(
+                            chroma_path=config.storage.chroma_path,
+                            embedding_provider=embedding_provider,
+                            similarity_metric=(
+                                config.chromadb.similarity_metric
+                                if hasattr(config, "chromadb")
+                                else "cosine"
+                            ),
+                        )
+                    except Exception as e:
+                        console.print(f"[yellow]![/yellow] Could not initialize vector store: {e}")
+                        console.print("  [dim]ChromaDB embeddings will not be deleted[/dim]")
+
+                    deleted_count = 0
+                    embeddings_deleted = 0
+                    for doc in to_delete:
+                        try:
+                            # Delete from ChromaDB first (if available)
+                            if vectorstore:
+                                try:
+                                    results = vectorstore.delete_embeddings(doc.id)
+                                    if results.get("ingrid_cleaned_text", False):
+                                        embeddings_deleted += 1
+                                        console.print(
+                                            f"  [dim]Deleted embeddings for {doc.id[:8]}[/dim]"
+                                        )
+                                except Exception as e:
+                                    console.print(
+                                        f"  [yellow]Warning: Failed to delete embeddings for {doc.id[:8]}: {e}[/yellow]"
+                                    )
+
+                            # Delete from database
+                            success = db.delete_document(doc.id)
+                            if success:
+                                deleted_count += 1
+
+                                # Optionally delete markdown file
+                                if delete_markdown:
+                                    md_path = (
+                                        Path(config.storage.output_path)
+                                        / f"{Path(doc.filename).stem}.md"
+                                    )
+                                    if md_path.exists():
+                                        md_path.unlink()
+                                        console.print(
+                                            f"  [dim]Deleted markdown: {md_path.name}[/dim]"
+                                        )
+                        except Exception as e:
+                            console.print(f"  [red]Failed to delete {doc.id[:8]}: {e}[/red]")
+
+                    console.print(f"\n[green]✓[/green] Deleted {deleted_count} documents")
+                    if vectorstore:
+                        console.print(
+                            f"[green]✓[/green] Deleted embeddings for {embeddings_deleted} documents"
+                        )
+                else:
+                    console.print("[yellow]Cancelled[/yellow]")
+
+        elif not (detect_bad or remove_duplicates or delete_id):
+            console.print("[yellow]![/yellow] No action specified. Use --help for options.")
+
+        db.close()
+
+    except Exception as e:
+        console.print(f"[red]✗[/red] Cleanup failed: {e}")
+        import traceback
+
         traceback.print_exc()
         raise typer.Exit(1)
 

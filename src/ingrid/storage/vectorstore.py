@@ -405,6 +405,69 @@ class VectorStoreManager:
         logger.debug(f"Collection stats: {stats}")
         return stats
 
+    def delete_embeddings(self, doc_id: str) -> dict[str, bool]:
+        """Delete all embeddings for a document from all collections.
+
+        Args:
+            doc_id: Document UUID to delete
+
+        Returns:
+            Dictionary mapping collection names to deletion success status
+        """
+        results = {}
+        collections = [
+            ("ingrid_cleaned_text", self.text_collection),
+            ("ingrid_summaries", self.summary_collection),
+            ("ingrid_summaries_english", self.summary_en_collection),
+            ("ingrid_images", self.image_collection),
+        ]
+
+        for name, collection in collections:
+            try:
+                # Check if document exists in collection
+                existing = collection.get(ids=[doc_id])
+                if existing and existing.get("ids"):
+                    collection.delete(ids=[doc_id])
+                    results[name] = True
+                    logger.debug(f"Deleted embedding for {doc_id} from {name}")
+                else:
+                    # Document not in this collection, still success
+                    results[name] = True
+                    logger.debug(f"Document {doc_id} not found in {name}")
+            except Exception as e:
+                results[name] = False
+                logger.error(f"Failed to delete {doc_id} from {name}: {e}")
+
+        deleted_count = sum(1 for success in results.values() if success)
+        logger.info(
+            f"Deleted embeddings for {doc_id}: {deleted_count}/{len(collections)} collections"
+        )
+
+        return results
+
+    def delete_embeddings_batch(self, doc_ids: list[str]) -> dict[str, int]:
+        """Delete embeddings for multiple documents.
+
+        Args:
+            doc_ids: List of document UUIDs to delete
+
+        Returns:
+            Dictionary with 'deleted' and 'failed' counts
+        """
+        deleted = 0
+        failed = 0
+
+        for doc_id in doc_ids:
+            results = self.delete_embeddings(doc_id)
+            # Consider success if at least cleaned_text was successful
+            if results.get("ingrid_cleaned_text", False):
+                deleted += 1
+            else:
+                failed += 1
+
+        logger.info(f"Batch delete complete: {deleted} deleted, {failed} failed")
+        return {"deleted": deleted, "failed": failed}
+
     def verify_storage(self) -> tuple[bool, list[str]]:
         """Verify vector store health and persistence.
 

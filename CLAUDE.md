@@ -157,13 +157,75 @@
   - `ingrid show <id>`: Display detailed document information (supports partial ID match)
   - `ingrid tag <id>`: Manage document tags (--add, --remove, --list)
   - `ingrid search-image <path>`: Visual similarity search using CLIP embeddings
+  - `ingrid cleanup`: Clean up database and ChromaDB with options:
+    - `--detect-bad`: Scan for documents with bad extractions (LLM instruction leakage)
+    - `--delete-bad`: Delete all detected bad extractions
+    - `--remove-duplicates`: Remove duplicate documents, keeping most recent
+    - `--delete <id>`: Delete a specific document by ID
+    - `--dry-run`: Preview what would be deleted without making changes
+    - `--delete-markdown`: Also delete markdown files (default: keep them as archive)
+    - Automatically deletes ChromaDB embeddings (no manual cleanup needed)
+    - Markdown files are preserved by default for archival purposes
+- **Bad Extraction Detection** (`cli.py`)
+  - Detects documents where OCR failed and LLM returned its own instructions
+  - Pattern matching for instruction text (e.g., "corrigeer duidelijke ocr-fouten", "fix obvious ocr errors")
+  - Detection of bad topics like "OCR", "correction", "instructions"
+  - Short extraction detection (<50 chars)
+- **Database Operations**
+  - Added `delete_document()` method to `DatabaseManager`
+- **Vector Store Operations**
+  - Added `delete_embeddings()` method to `VectorStoreManager` for single document cleanup
+  - Added `delete_embeddings_batch()` method for bulk cleanup
+  - Cleanup command now automatically removes embeddings from all 4 ChromaDB collections
 - **Files Changed**
   - Modified: `database.py`, `vectorstore.py`, `metadata.py`, `config.py`, `cli.py`, `processing/__init__.py`, `classification/__init__.py`, `llm/__init__.py`
   - Created: `llm/structured.py` (481 lines)
   - Total: ~1,150 lines of new code
 - **Tested & Working**: All storage operations, CLI commands, and per-task model configuration verified
 
-### ⏳ Phase 6: Web GUI & Analysis (PLANNED)
+### ✅ Phase 6a: Web Foundation (COMPLETED)
+- **Vue 3 Web Application** (`web/`)
+  - Vue 3 + Vite + TypeScript + Tailwind CSS project setup
+  - Vue Router with 3 views: Dashboard, Documents, Network
+  - Responsive layout with navigation bar
+  - TypeScript interfaces for Stats, Document, NetworkData types
+- **Data Fetching Composables** (`web/src/composables/useData.ts`)
+  - `useStats()`: Fetch and display dashboard statistics
+  - `useDocuments()`: Fetch and display all documents
+  - `useNetwork()`: Fetch network graph data
+  - Error handling and loading states for all composables
+- **View Components**
+  - **DashboardView**: Stats cards (total, letters, newspaper articles, flagged) + Top 5 topics/people/locations
+  - **DocumentsView**: Table with filename, type, date, and topics
+  - **NetworkView**: Placeholder for D3 visualization (Phase 6d)
+- **CLI Export Command** (`ingrid export-web`)
+  - Exports 3 JSON files to `web/public/data/`:
+    - `stats.json`: Dashboard statistics with aggregated topics/people/locations
+    - `documents.json`: All document metadata for web display
+    - `network.json`: Nodes (documents) and edges (shared 2+ topics)
+  - Uses Counter to aggregate top 20 topics, people, and locations
+  - Network edge calculation: Documents sharing 2+ topics are connected
+- **GitHub Actions Workflow** (`.github/workflows/deploy-web.yml`)
+  - Triggers on push to main when `web/**` changes
+  - Builds Vue app with `npm run build` (NODE_ENV=production)
+  - Deploys `web/dist/` to GitHub Pages
+  - Site URL: `https://CasparDP.github.io/ingrid/`
+- **Vite Configuration**
+  - Base path: `/ingrid/` for GitHub Pages
+  - Path alias: `@/` → `./src/`
+  - TypeScript path mapping configured in `tsconfig.app.json`
+- **Styling**
+  - Tailwind CSS with utility classes
+  - Responsive grid layouts (md breakpoints)
+  - Custom colors: primary (blue), secondary (purple)
+  - Minimal, clean design (polish in Phase 6e)
+- **Tested & Working**
+  - Vue app builds successfully without errors
+  - CLI export command registered and functional
+  - All TypeScript paths resolve correctly
+  - Ready for deployment to GitHub Pages
+
+### ⏳ Phase 6b-e: Web GUI Enhancements (PLANNED)
 
 **Architecture:**
 - Static site hosted on GitHub Pages (no backend needed)
@@ -184,10 +246,38 @@
 - Basic layout shell with navigation (Dashboard, Documents, Network views)
 - TypeScript interfaces for data types
 
-#### Phase 6b: Dashboard
-- Stats cards (document count, by type, by language)
-- Top topics/people/locations bar charts using D3
-- Simple Tailwind styling
+#### Phase 6b: Dashboard (COMPLETED ✅)
+- **Enhanced Stats Cards**
+  - Responsive grid (1 column mobile, 2 on tablet, 4 on desktop)
+  - Hover effects with shadow transitions
+  - Color-coded metrics (blue, green, purple, yellow)
+  - Large, bold numbers for quick scanning
+- **Breakdown Cards** (`web/src/components/BreakdownCard.vue`)
+  - Reusable component for category distributions
+  - Horizontal progress bars with custom colors
+  - Auto-sorted by count (highest first)
+  - Custom color mapping per category
+  - Three breakdowns: Document Type, Content Type, Language
+- **D3 Horizontal Bar Charts** (`web/src/components/HorizontalBarChart.vue`)
+  - Reusable D3.js chart component
+  - Responsive SVG rendering with auto-resize
+  - Hover effects on bars
+  - Value labels next to bars
+  - Three charts: Top 10 Topics, Top 10 People, Top 10 Locations
+  - Data filtering: Removes null/empty entries from people and locations
+- **Responsive Design**
+  - Tailwind CSS grid system
+  - Mobile-first approach
+  - Smooth transitions and hover effects
+  - Clean, professional styling
+- **TypeScript Integration**
+  - Fully typed components and props
+  - Type-safe D3 chart rendering
+  - Computed properties for data filtering
+- **Tested & Working**
+  - Build succeeds without errors (`npm run build`)
+  - Dev server runs successfully
+  - Charts render with real data from `stats.json`
 
 #### Phase 6c: Document Lookup
 - Document list with search/filter functionality
@@ -226,7 +316,7 @@
 }
 ```
 
-**Site URL:** `https://<username>.github.io/ingrid/`
+**Site URL:** `https://CasparDP.github.io/ingrid/`
 
 ### 🔧 Known Issues & Fixes Applied
 - **Embedding Model Context Length**: Changed from `tazarov/all-minilm-l6-v2-f32` (256 tokens) to `nomic-embed-text` (8192 tokens) to handle longer documents
@@ -593,6 +683,34 @@ ingrid search "meditation" --collection summaries --top-k 5
 # Visual similarity search (NEW in Phase 5)
 ingrid search-image scans/letter.jpg
 ingrid search-image scans/letter.jpg --top-k 5
+
+# ============= Cleanup =============
+# Scan for bad extractions (LLM instruction leakage)
+ingrid cleanup --detect-bad
+
+# Preview duplicate removal
+ingrid cleanup --remove-duplicates --dry-run
+
+# Delete bad extractions and duplicates (keeps markdown files as archive)
+ingrid cleanup --delete-bad --remove-duplicates
+
+# Delete bad extractions AND their markdown files
+ingrid cleanup --delete-bad --delete-markdown
+
+# Delete a specific document by ID
+ingrid cleanup --delete abc123
+
+# Full cleanup workflow:
+# 1. Preview: ingrid cleanup --delete-bad --remove-duplicates --dry-run
+# 2. Execute: ingrid cleanup --delete-bad --remove-duplicates
+#    (ChromaDB embeddings deleted automatically, markdown files preserved)
+# 3. Re-process if needed: ingrid process --batch
+# 4. Re-export: ingrid export-web
+
+# ============= Web Export =============
+# Export data for web dashboard
+ingrid export-web
+ingrid export-web --output web/public/data
 
 # ============= Future Commands (Phase 6) =============
 # Export network analysis
