@@ -225,7 +225,7 @@
   - All TypeScript paths resolve correctly
   - Ready for deployment to GitHub Pages
 
-### ⏳ Phase 6b-e: Web GUI Enhancements (PLANNED)
+### ✅ Phase 6b-e: Web GUI Enhancements (COMPLETED)
 
 **Architecture:**
 - Static site hosted on GitHub Pages (no backend needed)
@@ -236,21 +236,12 @@
 
 **Sub-phases:**
 
-#### Phase 6a: Foundation
-- Vue + Vite + Tailwind project setup in `ingrid/web/`
-- GitHub Actions workflow for deployment to `gh-pages`
-- `ingrid export-web` CLI command to generate JSON files:
-  - `stats.json`: Dashboard statistics (counts, top topics/people/locations)
-  - `documents.json`: All documents metadata for lookup
-  - `network.json`: Nodes and edges for D3 network graph
-- Basic layout shell with navigation (Dashboard, Documents, Network views)
-- TypeScript interfaces for data types
-
 #### Phase 6b: Dashboard (COMPLETED ✅)
 - **Enhanced Stats Cards**
   - Responsive grid (1 column mobile, 2 on tablet, 4 on desktop)
   - Hover effects with shadow transitions
-  - Color-coded metrics (blue, green, purple, yellow)
+  - Color-coded metrics with icons (blue, green, purple, yellow)
+  - Border-left accent colors for visual hierarchy
   - Large, bold numbers for quick scanning
 - **Breakdown Cards** (`web/src/components/BreakdownCard.vue`)
   - Reusable component for category distributions
@@ -258,6 +249,7 @@
   - Auto-sorted by count (highest first)
   - Custom color mapping per category
   - Three breakdowns: Document Type, Content Type, Language
+  - Dark mode support
 - **D3 Horizontal Bar Charts** (`web/src/components/HorizontalBarChart.vue`)
   - Reusable D3.js chart component
   - Responsive SVG rendering with auto-resize
@@ -265,36 +257,113 @@
   - Value labels next to bars
   - Three charts: Top 10 Topics, Top 10 People, Top 10 Locations
   - Data filtering: Removes null/empty entries from people and locations
-- **Responsive Design**
-  - Tailwind CSS grid system
-  - Mobile-first approach
-  - Smooth transitions and hover effects
-  - Clean, professional styling
-- **TypeScript Integration**
-  - Fully typed components and props
-  - Type-safe D3 chart rendering
-  - Computed properties for data filtering
-- **Tested & Working**
-  - Build succeeds without errors (`npm run build`)
-  - Dev server runs successfully
-  - Charts render with real data from `stats.json`
+- **Loading Skeletons**
+  - Animated pulse skeletons for stats cards, breakdowns, and charts
+  - Dark mode aware skeleton colors
+- **Empty States**
+  - Icons and messages when no data available
+  - Graceful fallbacks for missing topics/people/locations
 
-#### Phase 6c: Document Lookup
-- Document list with search/filter functionality
-- Document detail view (summary, metadata, image preview)
-- Both original and English summaries displayed
+#### Phase 6c: Document Lookup (COMPLETED ✅)
+- **Enhanced DocumentsView** (`web/src/views/DocumentsView.vue`)
+  - Full-text search (filename, topics, people, sender, recipient, location)
+  - Filter dropdowns: doc_type, content_type, language
+  - Flagged-only checkbox filter
+  - "Clear filters" button when filters active
+  - Results count display
+  - Sortable columns (filename, type, date) with sort icons
+  - Pagination (15 items per page) with Previous/Next buttons
+  - Click row to open document detail modal
+  - Loading skeleton states
+  - Empty state with helpful message
+  - Full dark mode support
+- **DocumentDetailModal Component** (`web/src/components/DocumentDetailModal.vue`)
+  - Teleported modal with smooth fade/scale transitions
+  - Sticky header with filename and close button
+  - Type badges (doc_type, content_type, languages, flagged status)
+  - Metadata grid (date, sender, recipient, location)
+  - Original summary with language indicator
+  - English summary (if different from original)
+  - Topics list with blue badges
+  - People mentioned with purple badges
+  - Manual tags display
+  - Document ID and processing date footer
+  - Full dark mode support
 
-#### Phase 6d: Network Graph
-- D3 network visualization
-- Nodes = documents, edges = shared topics (2+ topics = connection)
-- Node color = document type (letter vs newspaper)
-- Node size = number of connections
-- Click interactions (click node → show document details)
+#### Phase 6d: Network Graph (COMPLETED ✅)
+- **NetworkGraph Component** (`web/src/components/NetworkGraph.vue`)
+  - D3 force-directed simulation
+  - Node colors by document type:
+    - Blue (#3b82f6) = Letter
+    - Green (#22c55e) = Newspaper Article
+    - Gray (#9ca3af) = Other
+  - Node size scales with connection count (8-25px radius)
+  - Edge width based on shared topic count
+  - Interactive features:
+    - Hover: Node enlarges, edges highlight, tooltip shows details
+    - Click: Opens document detail modal
+    - Drag: Reposition nodes with physics simulation
+    - Zoom: In/Out/Reset buttons + scroll wheel
+  - Legend panel explaining node colors
+  - Zoom controls (zoom in, zoom out, reset view)
+  - Empty state when no connections exist
+  - Responsive to container resize
+- **Enhanced NetworkView** (`web/src/views/NetworkView.vue`)
+  - Stats bar: Documents count, Connections count, Unique topics count
+  - Hint text: "Click a node to view document details"
+  - "Most Connected Topics" section showing top shared topics
+  - Loading skeleton state
+  - Integration with DocumentDetailModal
+  - Full dark mode support
 
-#### Phase 6e: Polish
-- Improved styling and responsive design
-- Dark mode (optional)
-- Performance optimizations
+#### Phase 6e: Polish (COMPLETED ✅)
+- **Dark Mode**
+  - Toggle button in NavBar (sun/moon icons)
+  - System preference detection on first load
+  - LocalStorage persistence (`ingrid-dark-mode`)
+  - Smooth 200ms transitions between modes
+  - Full support across all components and views
+- **Enhanced NavBar** (`web/src/components/NavBar.vue`)
+  - Logo icon with gradient background
+  - Dark mode toggle button
+  - Active route highlighting
+  - Dark mode styling
+- **Consistent Styling**
+  - All components use `dark:` Tailwind variants
+  - Background: `bg-gray-50` / `dark:bg-gray-900`
+  - Cards: `bg-white` / `dark:bg-gray-800`
+  - Text: Appropriate gray scale for both modes
+  - Borders: `border-gray-200` / `dark:border-gray-700`
+  - Form inputs: Dark backgrounds and borders
+  - Badges: Semi-transparent dark variants
+- **Loading States**
+  - Animated pulse skeletons throughout
+  - Skeleton colors adapt to dark mode
+- **Error States**
+  - Red-themed error messages
+  - Retry buttons where applicable
+- **Empty States**
+  - Informative icons and messages
+  - Suggestions for user action
+- **Tailwind Configuration**
+  - `darkMode: 'class'` enabled
+  - Custom colors: primary (blue), secondary (purple)
+
+**New/Modified Files:**
+```
+web/src/
+├── App.vue                          # Dark mode state management
+├── components/
+│   ├── NavBar.vue                   # Logo, dark mode toggle
+│   ├── BreakdownCard.vue            # Dark mode support added
+│   ├── DocumentDetailModal.vue      # NEW - Modal for document details
+│   └── NetworkGraph.vue             # NEW - D3 force-directed graph
+├── views/
+│   ├── DashboardView.vue            # Loading skeletons, empty states, dark mode
+│   ├── DocumentsView.vue            # Search, filter, sort, pagination, dark mode
+│   └── NetworkView.vue              # Stats bar, graph integration, dark mode
+└── tailwind.config.js               # darkMode: 'class' enabled
+```
 
 **Data Export Format:**
 ```json
@@ -304,10 +373,30 @@
   "by_doc_type": {"letter": 12, "newspaper_article": 5, "other": 1},
   "by_content_type": {"handwritten": 8, "typed": 10},
   "by_language": {"de": 10, "nl": 6, "en": 2},
+  "flagged_count": 3,
   "top_topics": [{"name": "Buddhism", "count": 5}, ...],
   "top_people": [{"name": "Chris", "count": 3}, ...],
   "top_locations": [{"name": "Boston", "count": 2}, ...]
 }
+
+// documents.json
+[{
+  "id": "abc123",
+  "filename": "PHOTO-2025-12-28-10-15-43.jpg",
+  "doc_type": "letter",
+  "content_type": "handwritten",
+  "languages": ["nl"],
+  "date": "1943-05-12",
+  "sender": "Ingrid",
+  "recipient": "Johannes",
+  "location": "Amsterdam",
+  "topics": ["family", "war"],
+  "people_mentioned": ["Maria", "Hans"],
+  "summary": "...",
+  "summary_english": "...",
+  "flagged_for_review": false,
+  "manual_tags": []
+}, ...]
 
 // network.json
 {
@@ -317,6 +406,8 @@
 ```
 
 **Site URL:** `https://CasparDP.github.io/ingrid/`
+
+**Build Status:** ✅ Builds successfully (`npm run build`)
 
 ### 🔧 Known Issues & Fixes Applied
 - **Embedding Model Context Length**: Changed from `tazarov/all-minilm-l6-v2-f32` (256 tokens) to `nomic-embed-text` (8192 tokens) to handle longer documents
@@ -429,15 +520,21 @@ ingrid/
 ├── web/                      # Vue 3 web application (Phase 6)
 │   ├── src/
 │   │   ├── main.ts
-│   │   ├── App.vue
+│   │   ├── App.vue               # Root component with dark mode management
 │   │   ├── router/
 │   │   │   └── index.ts
 │   │   ├── views/
-│   │   │   ├── DashboardView.vue   # Stats and charts
-│   │   │   ├── DocumentsView.vue   # Document list/lookup
-│   │   │   └── NetworkView.vue     # D3 network graph
+│   │   │   ├── DashboardView.vue   # Stats cards, breakdowns, D3 bar charts
+│   │   │   ├── DocumentsView.vue   # Search, filter, sort, pagination, detail modal
+│   │   │   └── NetworkView.vue     # D3 force-directed network graph
 │   │   ├── components/
-│   │   │   └── NavBar.vue
+│   │   │   ├── NavBar.vue              # Navigation with dark mode toggle
+│   │   │   ├── BreakdownCard.vue       # Category distribution progress bars
+│   │   │   ├── HorizontalBarChart.vue  # D3 horizontal bar charts
+│   │   │   ├── DocumentDetailModal.vue # Document detail modal (NEW)
+│   │   │   └── NetworkGraph.vue        # D3 force-directed graph (NEW)
+│   │   ├── composables/
+│   │   │   └── useData.ts          # Data fetching composables
 │   │   ├── types/
 │   │   │   └── index.ts            # TypeScript interfaces
 │   │   └── assets/
@@ -450,7 +547,7 @@ ingrid/
 │   ├── index.html
 │   ├── package.json
 │   ├── vite.config.ts
-│   ├── tailwind.config.js
+│   ├── tailwind.config.js          # Dark mode enabled
 │   ├── postcss.config.js
 │   └── tsconfig.json
 │
