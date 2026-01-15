@@ -1,6 +1,6 @@
 <template>
-  <div class="bg-white rounded-lg shadow p-6">
-    <h3 class="text-lg font-semibold mb-4 text-gray-800">{{ title }}</h3>
+  <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 transition-colors">
+    <h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">{{ title }}</h3>
     <div class="space-y-3">
       <div
         v-for="[key, value] in sortedItems"
@@ -8,12 +8,12 @@
         class="flex items-center justify-between"
       >
         <div class="flex items-center flex-1">
-          <span class="text-sm font-medium text-gray-700 capitalize">{{
+          <span class="text-sm font-medium text-gray-700 dark:text-gray-300 capitalize">{{
             formatKey(key)
           }}</span>
         </div>
         <div class="flex items-center gap-3 ml-4">
-          <div class="flex-1 bg-gray-200 rounded-full h-2 w-32">
+          <div class="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2 w-32">
             <div
               class="h-2 rounded-full transition-all duration-300"
               :style="{
@@ -22,12 +22,12 @@
               }"
             ></div>
           </div>
-          <span class="text-sm font-bold text-gray-900 w-8 text-right">{{
+          <span class="text-sm font-bold text-gray-900 dark:text-white w-8 text-right">{{
             value
           }}</span>
         </div>
       </div>
-      <div v-if="sortedItems.length === 0" class="text-sm text-gray-500 italic">
+      <div v-if="sortedItems.length === 0" class="text-sm text-gray-500 dark:text-gray-400 italic">
         No data available
       </div>
     </div>
