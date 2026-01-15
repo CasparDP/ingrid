@@ -1,95 +1,99 @@
-import { ref, onMounted } from 'vue'
-import type { Stats, Document, NetworkData } from '@/types'
+import { ref, onMounted } from "vue";
+import type { Stats, Document, NetworkData } from "@/types";
+
+// Get base URL from Vite (handles /ingrid/ prefix in production)
+const baseUrl = import.meta.env.BASE_URL;
 
 export function useStats() {
-  const stats = ref<Stats | null>(null)
-  const loading = ref(true)
-  const error = ref<string | null>(null)
+  const stats = ref<Stats | null>(null);
+  const loading = ref(true);
+  const error = ref<string | null>(null);
 
   async function fetchStats() {
     try {
-      loading.value = true
-      error.value = null
-      const response = await fetch('/data/stats.json')
+      loading.value = true;
+      error.value = null;
+      const response = await fetch(`${baseUrl}data/stats.json`);
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      stats.value = await response.json()
+      stats.value = await response.json();
     } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Failed to load stats'
-      console.error('Error loading stats:', e)
+      error.value = e instanceof Error ? e.message : "Failed to load stats";
+      console.error("Error loading stats:", e);
     } finally {
-      loading.value = false
+      loading.value = false;
     }
   }
 
   onMounted(() => {
-    fetchStats()
-  })
+    fetchStats();
+  });
 
-  return { stats, loading, error, refetch: fetchStats }
+  return { stats, loading, error, refetch: fetchStats };
 }
 
 export function useDocuments() {
-  const documents = ref<Document[]>([])
-  const loading = ref(true)
-  const error = ref<string | null>(null)
+  const documents = ref<Document[]>([]);
+  const loading = ref(true);
+  const error = ref<string | null>(null);
 
   async function fetchDocuments() {
     try {
-      loading.value = true
-      error.value = null
-      const response = await fetch('/data/documents.json')
+      loading.value = true;
+      error.value = null;
+      const response = await fetch(`${baseUrl}data/documents.json`);
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      documents.value = await response.json()
+      documents.value = await response.json();
     } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Failed to load documents'
-      console.error('Error loading documents:', e)
+      error.value = e instanceof Error ? e.message : "Failed to load documents";
+      console.error("Error loading documents:", e);
     } finally {
-      loading.value = false
+      loading.value = false;
     }
   }
 
   onMounted(() => {
-    fetchDocuments()
-  })
+    fetchDocuments();
+  });
 
-  return { documents, loading, error, refetch: fetchDocuments }
+  return { documents, loading, error, refetch: fetchDocuments };
 }
 
 export function useNetwork() {
-  const network = ref<NetworkData | null>(null)
-  const loading = ref(true)
-  const error = ref<string | null>(null)
+  const network = ref<NetworkData | null>(null);
+  const loading = ref(true);
+  const error = ref<string | null>(null);
 
   async function fetchNetwork() {
     try {
-      loading.value = true
-      error.value = null
-      const response = await fetch('/data/network.json')
+      loading.value = true;
+      error.value = null;
+      const response = await fetch(`${baseUrl}data/network.json`);
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      network.value = await response.json()
+      network.value = await response.json();
     } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Failed to load network data'
-      console.error('Error loading network:', e)
+      error.value =
+        e instanceof Error ? e.message : "Failed to load network data";
+      console.error("Error loading network:", e);
     } finally {
-      loading.value = false
+      loading.value = false;
     }
   }
 
   onMounted(() => {
-    fetchNetwork()
-  })
+    fetchNetwork();
+  });
 
-  return { network, loading, error, refetch: fetchNetwork }
+  return { network, loading, error, refetch: fetchNetwork };
 }
