@@ -23,6 +23,5 @@ dist-ssr
 *.sln
 *.sw?
 
-# Generated data files (exported by ingrid export-web)
-public/data/*.json
-!public/data/.gitkeep
+# Keep generated data files (needed for GitHub Pages deployment)
+# These are exported by: ingrid export-web

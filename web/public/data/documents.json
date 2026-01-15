@@ -1,0 +1,273 @@
+[
+  {
+    "id": "78c8ec65-2b71-4371-b1ae-a729e84020b3",
+    "filename": "PHOTO-2025-12-28-10-15-43-5.jpg",
+    "doc_type": "newspaper_article",
+    "content_type": "typed",
+    "languages": [
+      "de",
+      "en"
+    ],
+    "date": null,
+    "sender": null,
+    "recipient": null,
+    "location": "Amsterdam, Bangkok, Zürich, Auckland",
+    "topics": [
+      "Buddhism",
+      "Peace",
+      "Thinking",
+      "Bruno",
+      "Monk"
+    ],
+    "people_mentioned": [
+      "Bruno",
+      "Sušanne",
+      "Amnuai",
+      "Sutit",
+      "Hocé"
+    ],
+    "summary": "Der Artikel beschreibt die Probleme von Flugreisen, insbesondere die Nutzung der Route Amsterdam-Bangkok-Auckland, die nur bis Bangkok betrieben wird. Bruno, ein Reisender, erlebt Schwierigkeiten aufgrund fehlender Verbindungen und der ungewöhnlichen Umstände seiner Reise, während gleichzeitig die spirituellen Einflüsse des Buddhismus und die Werke eines Mönchs, der Bruno gewidmet hat, erwähnt werden. Die Texte scheinen eine Mischung aus praktischen Reiseinformationen und philosophischen Beobachtungen zu sein, die durch eine unkonventionelle Reise erlebt werden.",
+    "summary_english": "The article describes the problems associated with air travel, particularly the Amsterdam-Bangkok-Auckland route which terminates in Bangkok.  A traveler, Bruno, experiences difficulties due to connection issues and the unusual circumstances of his journey, alongside mentions of Buddhist spiritual influences and the works of a monk dedicated to him. The texts appear to be a mixture of practical travel information and philosophical observations gained through an unconventional trip.",
+    "summary_language": "de",
+    "flagged_for_review": false,
+    "manual_tags": [],
+    "created_at": "2026-01-14T20:56:39.230243"
+  },
+  {
+    "id": "9df7b0dc-846d-4dd3-b18d-8a64e3592610",
+    "filename": "PHOTO-2025-12-28-10-15-43-4.jpg",
+    "doc_type": "other",
+    "content_type": "typed",
+    "languages": [
+      "de"
+    ],
+    "date": "null",
+    "sender": null,
+    "recipient": null,
+    "location": "null",
+    "topics": [
+      "drugs",
+      "relationships",
+      "doubt",
+      "perception",
+      "reality"
+    ],
+    "people_mentioned": [
+      "JOSEPHINE",
+      "Willem",
+      "SUSAN"
+    ],
+    "summary": "Dieser Brief von Bruno an Josephine handelt von deren scheinbarer Veränderung und seinen eigenen Zweifeln an seiner Realität sowie der Natur der Liebe. Er äußert Vermutungen über rechtliche Probleme, die Josephine betreffen, und deutet an, dass sie ihn manipuliert, während er selbst nach Wahrheit sucht und sich nach der Natur der Realität und des Wissens sehnt. Der Ton des Briefes ist von Verwirrung, Misstrauen und dem Wunsch nach Klarheit geprägt.",
+    "summary_english": "This letter from Bruno to Josephine concerns her apparent change and his own doubts regarding his reality and the nature of love. He speculates about legal issues affecting Josephine and suggests she is manipulating him while he seeks truth and longs for understanding of reality and knowledge. The letter’s tone is characterized by confusion, distrust, and a desire for clarity.",
+    "summary_language": "de",
+    "flagged_for_review": true,
+    "manual_tags": [],
+    "created_at": "2026-01-14T20:55:51.036904"
+  },
+  {
+    "id": "cf6bc414-b9a4-4bf8-8bfd-bede6b1d2667",
+    "filename": "PHOTO-2025-12-28-10-15-43-1.jpg",
+    "doc_type": "other",
+    "content_type": "typed",
+    "languages": [
+      "de",
+      "nl"
+    ],
+    "date": "1900",
+    "sender": null,
+    "recipient": null,
+    "location": "NZ",
+    "topics": [
+      "Bahai",
+      "Islam",
+      "Correspondence",
+      "Relationship",
+      "Philosophy"
+    ],
+    "people_mentioned": [],
+    "summary": "Dieser Brief ist eine emotional aufgeladene Korrespondenz, in der der Absender seine Verwirrung und Enttäuschung über die Beziehung zum Korrespondenten zum Ausdruck bringt. Er drückt den Wunsch nach einem Besuch aus, setzt dies jedoch voraus, dass der Korrespondent seine Identität und seine Ansichten (insbesondere bezüglich des Buddhismus und der Bahai-Religion) aufgibt.  Der Absender betont die Notwendigkeit eines einheitlichen Denkens und weigert sich, die Beziehung fortzusetzen, solange der Korrespondent sich mit bestimmten ideologischen Positionen identifiziert.",
+    "summary_english": "This letter constitutes an emotionally charged correspondence in which the sender expresses his confusion and disappointment regarding the relationship with the recipient. He requests a visit, contingent upon the recipient abandoning his identity and opinions – particularly concerning Buddhism and the Bahai religion. The sender emphasizes the necessity of unified thinking and refuses to continue the relationship as long as the recipient adheres to specific ideological positions.",
+    "summary_language": "de",
+    "flagged_for_review": true,
+    "manual_tags": [],
+    "created_at": "2026-01-14T20:51:57.645327"
+  },
+  {
+    "id": "f57c2659-cc3b-4b4a-b946-4ab81203ab91",
+    "filename": "PHOTO-2025-12-28-10-15-44-1.jpg",
+    "doc_type": "newspaper_article",
+    "content_type": "typed",
+    "languages": [
+      "nl"
+    ],
+    "date": "1980-11-17",
+    "sender": "etz Leeflang",
+    "recipient": null,
+    "location": "Schouwen-Duiveland, Tidorp, Bentheim, TWAALF AMBACHTEN",
+    "topics": [
+      "self-building",
+      "sustainable construction",
+      "caravan settlement",
+      "cement",
+      "sandstone"
+    ],
+    "people_mentioned": [
+      "Bruno Mertens",
+      "Ank"
+    ],
+    "summary": "Het artikel beschrijft een verkenningstocht naar de caravan-nederzetting \"Tidorp\" op Schouwen-Duiveland, waar een groep mensen zelfbouwprojecten uitvoert met duurzame materialen zoals duinzand en gevonden hout. De focus ligt op de groeiende interesse in zelf bouwen, waarbij deelnemers zelf bouwmaterialen maken en samenwerken, en waarbij de ervaring een belangrijke factor is. Hoewel het project uitdagingen met zich meebrengt, zoals de noodzaak van cement en geld, toont het een vertrouwen in de eigen mogelijkheden en de waarde van samenwerking.",
+    "summary_english": "The article describes an exploratory visit to the self-built settlement “Tidorp” on Schouwen-Duiveland, where a group of people is undertaking construction projects using sustainable materials such as dune sand and salvaged wood. The focus is on the increasing interest in self-building, with participants creating their own building materials and collaborating, emphasizing the importance of experience. Despite the challenges, including the need for cement and funding, the project demonstrates confidence in individual capabilities and the value of cooperation.",
+    "summary_language": "nl",
+    "flagged_for_review": false,
+    "manual_tags": [],
+    "created_at": "2026-01-14T20:50:38.171844"
+  },
+  {
+    "id": "9b6c0b45-9fd9-404a-ad7b-8fc3905dc8a9",
+    "filename": "PHOTO-2025-12-28-10-15-44-3.jpg",
+    "doc_type": "other",
+    "content_type": "typed",
+    "languages": [
+      "nl"
+    ],
+    "date": "null",
+    "sender": "Bruno Mertens",
+    "recipient": null,
+    "location": "Schouwen-Duiveland, Hamstede, Renesse, Hoge Zoom",
+    "topics": [
+      "meditation",
+      "community",
+      "agriculture",
+      "sustainable living",
+      "learning"
+    ],
+    "people_mentioned": [
+      "Bruno Mertens",
+      "Piet Peperkamp"
+    ],
+    "summary": "Tidorp is een werk- en leefgemeenschap gesticht door Bruno Mertens op Schouwen-Duiveland, waar hard werken, meditatie en weinig praten centraal staan. De gemeenschap, die zichzelf een centrum noemt om de waarde van een persoon te leren, is gevestigd aan de Hoge Zoom en draait om een bijzondere levensstijl met focus op landbouw en meditatie. Piet Peperkamp observeerde deze levensstijl door de mensen in Tidorp te bezoeken.",
+    "summary_english": "Tidorp is a work and living community founded by Bruno Mertens on Schouwen-Duiveland, emphasizing hard work, meditation, and minimal conversation. The community, which identifies as a center for learning a person’s value, is located on the Hoge Zoom and revolves around a unique lifestyle focused on agriculture and meditation. Piet Peperkamp observed this lifestyle by visiting the people of Tidorp.",
+    "summary_language": "nl",
+    "flagged_for_review": true,
+    "manual_tags": [],
+    "created_at": "2026-01-14T20:49:34.600694"
+  },
+  {
+    "id": "4eec18a2-354e-407a-bf8f-c449767b3126",
+    "filename": "PHOTO-2025-12-28-10-15-44-6.jpg",
+    "doc_type": "other",
+    "content_type": "typed",
+    "languages": [
+      "nl"
+    ],
+    "date": null,
+    "sender": "HAnsonl",
+    "recipient": null,
+    "location": "Ceul, Brunssums Heide, O.N. II",
+    "topics": [
+      "history",
+      "heritage",
+      "nature",
+      "estate",
+      "inheritance"
+    ],
+    "people_mentioned": [
+      "Hermann"
+    ],
+    "summary": "Dit is een brief van Hermann, een oud man, waarin hij een aanzienlijk bedrag ($680.000) terugvordt. Hij verwijt de ontvanger een onnodig verhaal te hebben verteld en een waardevol artefact te hebben verstoord, terwijl hij tevens zijn steun voor de overledene, Herr Etermann, erkent. Hij eindigt met een hartelijke dank en een formele afsluiting.",
+    "summary_english": "This is a letter from Hermann, an elderly man, requesting a substantial sum of money ($680,000). He accuses the recipient of having unnecessarily recounted a story and disturbed a valuable artifact, while also acknowledging his support for the deceased, Herr Etermann. The letter concludes with a heartfelt thank you and a formal closing.",
+    "summary_language": "nl",
+    "flagged_for_review": true,
+    "manual_tags": [],
+    "created_at": "2026-01-14T20:48:20.842308"
+  },
+  {
+    "id": "928f2831-7074-45f3-8d6a-106acb68c47f",
+    "filename": "PHOTO-2025-12-28-10-15-44.jpg",
+    "doc_type": "newspaper_article",
+    "content_type": "typed",
+    "languages": [
+      "nl"
+    ],
+    "date": "10 juni 1971",
+    "sender": "Burgemeester en wethouders van Assen",
+    "recipient": "heer .Mertens",
+    "location": "Assen, Zuidzijde 72a, BODEGRAVEN, Noordersingel 29",
+    "topics": [
+      "kunstwerk",
+      "mobiel",
+      "fundament",
+      "transport",
+      "verbinding"
+    ],
+    "people_mentioned": [
+      ".Mertens"
+    ],
+    "summary": "De gemeente Assen antwoordt op een brief van de heer Mertens over een voorgestelde verbinding tussen paalfundering en fundering met versterkingsribben. Hoewel de gemeente de voorgestelde oplossing in principe goedkeurt, is er bezwaar tegen de extra kosten die hieraan verbonden zijn en wordt de heer Mertens verzocht contact op te nemen met de directeur van gemeentewerken voor verdere afstemming. Dit document dateert van 10 juni 1971 en betreft een formele correspondentie tussen de gemeente en een particulier over een bouwproject.",
+    "summary_english": "The municipality of Assen responds to a letter from Mr. Mertens regarding a proposed connection between pile foundations and foundations with reinforcing ribs. While the municipality generally approves the proposed solution, objections are raised concerning the associated additional costs, and Mr. Mertens is requested to contact the director of municipal works for further coordination. This document dates from June 10, 1971 and concerns formal correspondence between the municipality and a private individual about a construction project.",
+    "summary_language": "nl",
+    "flagged_for_review": false,
+    "manual_tags": [],
+    "created_at": "2026-01-14T20:44:59.532770"
+  },
+  {
+    "id": "d1542ca8-bdfb-43bc-89eb-04025b394f7d",
+    "filename": "PHOTO-2025-12-28-10-15-43.jpg",
+    "doc_type": "other",
+    "content_type": "typed",
+    "languages": [
+      "de",
+      "nl"
+    ],
+    "date": "1107",
+    "sender": null,
+    "recipient": null,
+    "location": "BOSTON",
+    "topics": [
+      "Buddhismus",
+      "Meditation",
+      "Bewusstsein",
+      "Philosophie",
+      "Religie"
+    ],
+    "people_mentioned": [
+      "T. Tulku",
+      "Chris"
+    ],
+    "summary": "Der Text handelt von einem persönlichen Konflikt und der Enttäuschung über eine Beziehung, die von Missverständnissen und Unterschieden geprägt ist. Der Autor beklagt, dass er sich in der Umsetzung buddhistischer Prinzipien nicht authentisch ausdrücken kann und dass die gemeinsame Einsicht verloren geht, da er seine Perspektive nicht mit der des Partners teilen kann. Trotzdem wünscht er sich, gemeinsam zur „Vollkommenheit“ zu streben, indem sie die grundlegenden, existentiell gültigen Wahrheiten anerkennen und sich von Herzensausdruck leiten lassen.",
+    "summary_english": "The text concerns a personal conflict and disappointment within a relationship characterized by misunderstandings and differences. The author laments his inability to authentically express Buddhist principles and the loss of shared insight due to his failure to share his perspective with his partner. Nevertheless, he desires to strive together towards “perfection” by recognizing fundamental, existential truths and allowing themselves to be guided by heartfelt expression.",
+    "summary_language": "de",
+    "flagged_for_review": true,
+    "manual_tags": [],
+    "created_at": "2026-01-14T20:44:21.273946"
+  },
+  {
+    "id": "00cf9aae-a297-4c32-8018-7e38b31cfcc4",
+    "filename": "PHOTO-2025-12-28-10-15-43-8.jpg",
+    "doc_type": "other",
+    "content_type": "typed",
+    "languages": [
+      "nl"
+    ],
+    "date": "null",
+    "sender": null,
+    "recipient": null,
+    "location": "null",
+    "topics": [
+      "Jesus",
+      "Gemoed",
+      "Leven",
+      "Liefde",
+      "Dood"
+    ],
+    "people_mentioned": [
+      "Jezus"
+    ],
+    "summary": "Deze documenten, afkomstig uit de leerstellingen van de Gemeente van Christus, behandelen het belang van liefde, goed doen en het geloof in het goddelijke Gemoed. De tekst benadrukt dat het perfecte voorbeeld van Jezus, door het doen van goede daden, de weg naar verlossing en een ‘hemel’ van het goede openstelt, terwijl het kwaad door eigen handelingen tot straf leidt.  De nadruk ligt op het ontwaken van het bewustzijn en het leven in overeenstemming met de principes van Waarheid, Liefde en het onsterfelijke Gemoed.",
+    "summary_english": "These documents, originating from the teachings of the Church of Christ, address the importance of love, good deeds, and faith in the Divine Mind. The text emphasizes that Jesus’ perfect example, through acts of goodness, opens the way to redemption and a ‘heaven’ of goodness, while evil results from one’s own actions leading to punishment. The focus lies on awakening consciousness and living in accordance with the principles of Truth, Love, and the immortal Mind.",
+    "summary_language": "nl",
+    "flagged_for_review": true,
+    "manual_tags": [],
+    "created_at": "2026-01-14T20:42:41.792263"
+  }
+]

@@ -1,0 +1,165 @@
+{
+  "nodes": [
+    {
+      "id": "78c8ec65-2b71-4371-b1ae-a729e84020b3",
+      "label": "PHOTO-2025-12-28-10-15-43-5.jp...",
+      "doc_type": "newspaper_article",
+      "content_type": "typed",
+      "date": null,
+      "topics": [
+        "Buddhism",
+        "Peace",
+        "Thinking",
+        "Bruno",
+        "Monk"
+      ],
+      "people_mentioned": [
+        "Bruno",
+        "Sušanne",
+        "Amnuai",
+        "Sutit",
+        "Hocé"
+      ]
+    },
+    {
+      "id": "9df7b0dc-846d-4dd3-b18d-8a64e3592610",
+      "label": "PHOTO-2025-12-28-10-15-43-4.jp...",
+      "doc_type": "other",
+      "content_type": "typed",
+      "date": "null",
+      "topics": [
+        "drugs",
+        "relationships",
+        "doubt",
+        "perception",
+        "reality"
+      ],
+      "people_mentioned": [
+        "JOSEPHINE",
+        "Willem",
+        "SUSAN"
+      ]
+    },
+    {
+      "id": "cf6bc414-b9a4-4bf8-8bfd-bede6b1d2667",
+      "label": "PHOTO-2025-12-28-10-15-43-1.jp...",
+      "doc_type": "other",
+      "content_type": "typed",
+      "date": "1900",
+      "topics": [
+        "Bahai",
+        "Islam",
+        "Correspondence",
+        "Relationship",
+        "Philosophy"
+      ],
+      "people_mentioned": []
+    },
+    {
+      "id": "f57c2659-cc3b-4b4a-b946-4ab81203ab91",
+      "label": "PHOTO-2025-12-28-10-15-44-1.jp...",
+      "doc_type": "newspaper_article",
+      "content_type": "typed",
+      "date": "1980-11-17",
+      "topics": [
+        "self-building",
+        "sustainable construction",
+        "caravan settlement",
+        "cement",
+        "sandstone"
+      ],
+      "people_mentioned": [
+        "Bruno Mertens",
+        "Ank"
+      ]
+    },
+    {
+      "id": "9b6c0b45-9fd9-404a-ad7b-8fc3905dc8a9",
+      "label": "PHOTO-2025-12-28-10-15-44-3.jp...",
+      "doc_type": "other",
+      "content_type": "typed",
+      "date": "null",
+      "topics": [
+        "meditation",
+        "community",
+        "agriculture",
+        "sustainable living",
+        "learning"
+      ],
+      "people_mentioned": [
+        "Bruno Mertens",
+        "Piet Peperkamp"
+      ]
+    },
+    {
+      "id": "4eec18a2-354e-407a-bf8f-c449767b3126",
+      "label": "PHOTO-2025-12-28-10-15-44-6.jp...",
+      "doc_type": "other",
+      "content_type": "typed",
+      "date": null,
+      "topics": [
+        "history",
+        "heritage",
+        "nature",
+        "estate",
+        "inheritance"
+      ],
+      "people_mentioned": [
+        "Hermann"
+      ]
+    },
+    {
+      "id": "928f2831-7074-45f3-8d6a-106acb68c47f",
+      "label": "PHOTO-2025-12-28-10-15-44.jpg",
+      "doc_type": "newspaper_article",
+      "content_type": "typed",
+      "date": "10 juni 1971",
+      "topics": [
+        "kunstwerk",
+        "mobiel",
+        "fundament",
+        "transport",
+        "verbinding"
+      ],
+      "people_mentioned": [
+        ".Mertens"
+      ]
+    },
+    {
+      "id": "d1542ca8-bdfb-43bc-89eb-04025b394f7d",
+      "label": "PHOTO-2025-12-28-10-15-43.jpg",
+      "doc_type": "other",
+      "content_type": "typed",
+      "date": "1107",
+      "topics": [
+        "Buddhismus",
+        "Meditation",
+        "Bewusstsein",
+        "Philosophie",
+        "Religie"
+      ],
+      "people_mentioned": [
+        "T. Tulku",
+        "Chris"
+      ]
+    },
+    {
+      "id": "00cf9aae-a297-4c32-8018-7e38b31cfcc4",
+      "label": "PHOTO-2025-12-28-10-15-43-8.jp...",
+      "doc_type": "other",
+      "content_type": "typed",
+      "date": "null",
+      "topics": [
+        "Jesus",
+        "Gemoed",
+        "Leven",
+        "Liefde",
+        "Dood"
+      ],
+      "people_mentioned": [
+        "Jezus"
+      ]
+    }
+  ],
+  "edges": []
+}

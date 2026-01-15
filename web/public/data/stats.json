@@ -1,0 +1,198 @@
+{
+  "total_documents": 9,
+  "by_doc_type": {
+    "newspaper_article": 3,
+    "other": 6
+  },
+  "by_content_type": {
+    "typed": 9
+  },
+  "by_language": {
+    "nl": 7,
+    "de": 4,
+    "en": 1
+  },
+  "flagged_count": 6,
+  "top_topics": [
+    {
+      "name": "Buddhism",
+      "count": 1
+    },
+    {
+      "name": "Peace",
+      "count": 1
+    },
+    {
+      "name": "Thinking",
+      "count": 1
+    },
+    {
+      "name": "Bruno",
+      "count": 1
+    },
+    {
+      "name": "Monk",
+      "count": 1
+    },
+    {
+      "name": "drugs",
+      "count": 1
+    },
+    {
+      "name": "relationships",
+      "count": 1
+    },
+    {
+      "name": "doubt",
+      "count": 1
+    },
+    {
+      "name": "perception",
+      "count": 1
+    },
+    {
+      "name": "reality",
+      "count": 1
+    },
+    {
+      "name": "Bahai",
+      "count": 1
+    },
+    {
+      "name": "Islam",
+      "count": 1
+    },
+    {
+      "name": "Correspondence",
+      "count": 1
+    },
+    {
+      "name": "Relationship",
+      "count": 1
+    },
+    {
+      "name": "Philosophy",
+      "count": 1
+    },
+    {
+      "name": "self-building",
+      "count": 1
+    },
+    {
+      "name": "sustainable construction",
+      "count": 1
+    },
+    {
+      "name": "caravan settlement",
+      "count": 1
+    },
+    {
+      "name": "cement",
+      "count": 1
+    },
+    {
+      "name": "sandstone",
+      "count": 1
+    }
+  ],
+  "top_people": [
+    {
+      "name": "Bruno Mertens",
+      "count": 2
+    },
+    {
+      "name": "Bruno",
+      "count": 1
+    },
+    {
+      "name": "Sušanne",
+      "count": 1
+    },
+    {
+      "name": "Amnuai",
+      "count": 1
+    },
+    {
+      "name": "Sutit",
+      "count": 1
+    },
+    {
+      "name": "Hocé",
+      "count": 1
+    },
+    {
+      "name": "JOSEPHINE",
+      "count": 1
+    },
+    {
+      "name": "Willem",
+      "count": 1
+    },
+    {
+      "name": "SUSAN",
+      "count": 1
+    },
+    {
+      "name": "Ank",
+      "count": 1
+    },
+    {
+      "name": "Piet Peperkamp",
+      "count": 1
+    },
+    {
+      "name": "Hermann",
+      "count": 1
+    },
+    {
+      "name": ".Mertens",
+      "count": 1
+    },
+    {
+      "name": "T. Tulku",
+      "count": 1
+    },
+    {
+      "name": "Chris",
+      "count": 1
+    },
+    {
+      "name": "Jezus",
+      "count": 1
+    }
+  ],
+  "top_locations": [
+    {
+      "name": "null",
+      "count": 2
+    },
+    {
+      "name": "Amsterdam, Bangkok, Zürich, Auckland",
+      "count": 1
+    },
+    {
+      "name": "NZ",
+      "count": 1
+    },
+    {
+      "name": "Schouwen-Duiveland, Tidorp, Bentheim, TWAALF AMBACHTEN",
+      "count": 1
+    },
+    {
+      "name": "Schouwen-Duiveland, Hamstede, Renesse, Hoge Zoom",
+      "count": 1
+    },
+    {
+      "name": "Ceul, Brunssums Heide, O.N. II",
+      "count": 1
+    },
+    {
+      "name": "Assen, Zuidzijde 72a, BODEGRAVEN, Noordersingel 29",
+      "count": 1
+    },
+    {
+      "name": "BOSTON",
+      "count": 1
+    }
+  ]
+}
